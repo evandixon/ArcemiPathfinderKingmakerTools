@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.Models;
+using System.Collections.Generic;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker
 {
     public interface IGameResourcesProvider
     {
@@ -27,5 +29,6 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
         string GetItemName(string blueprint);
 
         FactItemModel GetFeatTemplate(string blueprint);
+        ProgressionBlueprintModel GetProgression(string blueprint);
     }
 }

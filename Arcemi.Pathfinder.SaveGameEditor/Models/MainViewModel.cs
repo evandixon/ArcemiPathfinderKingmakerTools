@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using Arcemi.Pathfinder.Kingmaker.GameData;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
+using Arcemi.Pathfinder.Kingmaker.Models;
 
 namespace Arcemi.Pathfinder.SaveGameEditor.Models
 {
@@ -105,6 +106,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
         {
             _resources.Blueprints = BlueprintMetadata.Load(Config.GameFolder);
             LoadFeatTemplates();
+            LoadProgressions();
 
             var wwwRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot");
 #if DEBUG
@@ -129,6 +131,14 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             }
             _resources.FeatTemplates = templates;
         }
+
+        private void LoadProgressions()
+        {
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "_Defs", "Progressions.json");
+            var contents = File.ReadAllText(path);
+            _resources.Progressions = JsonConvert.DeserializeObject<List<ProgressionBlueprintModel>>(contents);
+        }
+
 
         public async Task SaveConfigAsync()
         {

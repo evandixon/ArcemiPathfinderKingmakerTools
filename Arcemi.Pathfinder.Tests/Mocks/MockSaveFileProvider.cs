@@ -1,4 +1,5 @@
-﻿using Arcemi.Pathfinder.Kingmaker.GameData;
+﻿using Arcemi.Pathfinder.Kingmaker;
+using Arcemi.Pathfinder.Kingmaker.GameData;
 using Arcemi.Pathfinder.SaveGameEditor.Models;
 using Newtonsoft.Json.Linq;
 using System;

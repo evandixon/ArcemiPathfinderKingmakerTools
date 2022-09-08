@@ -1,4 +1,5 @@
-﻿using Arcemi.Pathfinder.Kingmaker.GameData;
+﻿using Arcemi.Pathfinder.Kingmaker;
+using Arcemi.Pathfinder.Kingmaker.GameData;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,7 +41,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             return cls.Level > 1 && ProgressionBlueprints.ContainsKey(cls.CharacterClass);
         }
 
-        public void DowngradeClass(ClassModel cls, bool preserveFeatures = true)
+        public void DowngradeClass(ClassModel cls, bool preserveFeatures = false)
         {
             if (cls.Level <= 1) return;
             if (!ProgressionBlueprints.TryGetValue(cls.CharacterClass, out var blueprints)) return;
@@ -65,6 +66,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             clsBlueprints.Add(cls.CharacterClass);
 
             // Decrease the level on the class
+            var progressionsDecreased = new List<ProgressionItemModel>();
             foreach (var item in progression.Items) {
                 // Lower the overall character level
                 if (!cls.IsMythic)
@@ -72,6 +74,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                     if (item.Value.Level == level)
                     {
                         item.Value.Level--;
+                        progressionsDecreased.Add(item);
                         continue;
                     }
                 }
@@ -80,6 +83,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 if (!progressionLookup.Contains(item.Key)) continue;
                 if (item.Value.Level == clsLevel) {
                     item.Value.Level--;
+                    progressionsDecreased.Add(item);
                 }
             }
             cls.Level = clsLevel - 1;
@@ -100,6 +104,40 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 if (!cls.IsMythic)
                 {
                     RemoveSelection(progression, i, levelStr, preserveFeatures);
+                }
+            }
+
+            // If enabled, re-add any features that were superceded by ones we just removed
+            if (!preserveFeatures)
+            {
+                foreach (var decreasedProgression in progressionsDecreased)
+                {
+                    var blueprint = Resources.GetProgression(decreasedProgression.Key);
+                    if (blueprint == null) 
+                    {
+                        continue;
+                    }
+
+                    var newLevel = blueprint.Levels.FirstOrDefault(l => l.Level == decreasedProgression.Value.Level);
+                    foreach (var featureId in newLevel.FeatureBlueprintIds)
+                    {
+                        if (Unit.Facts.Items.Any(f => f.Blueprint == featureId))
+                        {
+                            continue;
+                        }
+
+                        var missingFeatureTemplate = Resources.GetFeatTemplate(featureId);
+                        if (missingFeatureTemplate == null)
+                        {
+                            continue;
+                        }
+
+                        var missingFeature = (FeatureFactItemModel)Unit.Facts.Items.Add(FeatureFactItemModel.Prepare);
+                        missingFeature.Import(missingFeatureTemplate);
+                        missingFeature.Source = decreasedProgression.Key;
+                        missingFeature.SourceLevel = decreasedProgression.Value.Level;
+                        missingFeature.Context.OwnerRef = Unit.UniqueId;
+                    }
                 }
             }
         }
@@ -174,9 +212,6 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             // Remove the fact itself
             Unit.Facts.Items.Remove(fact);
             Unit.Descriptor.UISettings.m_AlreadyAutomaticallyAdded.Remove(fact.Blueprint);
-            // To-do: remove from hotbar. Might be optional.
-
-            // To-do: reference class progression and re-add any features this one replaced during level-up
         }
     }
 }
