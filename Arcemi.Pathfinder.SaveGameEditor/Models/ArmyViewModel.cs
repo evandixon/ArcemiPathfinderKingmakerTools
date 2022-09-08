@@ -1,4 +1,4 @@
-﻿using Arcemi.Pathfinder.Kingmaker;
+﻿using Arcemi.Pathfinder.Kingmaker.GameData;
 using System;
 using System.Collections.Generic;
 using System.Linq;

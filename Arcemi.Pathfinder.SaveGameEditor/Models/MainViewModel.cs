@@ -7,6 +7,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.Infrastructure;
+using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
 
 namespace Arcemi.Pathfinder.SaveGameEditor.Models
 {
