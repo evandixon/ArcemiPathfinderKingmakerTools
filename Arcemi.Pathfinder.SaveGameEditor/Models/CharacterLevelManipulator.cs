@@ -1,6 +1,7 @@
 ﻿using Arcemi.Pathfinder.Kingmaker;
 using Arcemi.Pathfinder.Kingmaker.GameData;
 using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
+using Arcemi.Pathfinder.Kingmaker.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,7 +21,6 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 var blueprints = (IReadOnlyList<IBlueprintMetadataEntry>)unit.Facts.Items
                     .OfType<FeatureFactItemModel>()
                     .Select(f => {
-                        if (!string.Equals(cls.CharacterClass, f.Source, StringComparison.Ordinal)) return null;
                         if (!resources.Blueprints.TryGet(f.Blueprint, out var bp)) return null;
                         return bp.Type == BlueprintTypes.Progression
                             ? bp
@@ -39,13 +39,19 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         public bool CanDowngrade(ClassModel cls)
         {
-            return cls.Level > 1 && ProgressionBlueprints.ContainsKey(cls.CharacterClass);
+            return true;
         }
 
         public void DowngradeClass(ClassModel cls, bool preserveFeatures = false)
         {
-            if (cls.Level <= 1) return;
-            if (!ProgressionBlueprints.TryGetValue(cls.CharacterClass, out var blueprints)) return;
+            if (!ProgressionBlueprints.TryGetValue(cls.CharacterClass, out var blueprints))
+            {
+                var classData = Resources.GetClassData(cls.CharacterClass);
+                blueprints = new List<IBlueprintMetadataEntry>
+                {
+                    Resources.Blueprints.Get(classData.Progression.BlueprintId)
+                };
+            }
 
             var progression = Unit.Descriptor.Progression;
 
@@ -116,6 +122,12 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                     AddClassLevelFeatures(decreasedProgression, decreasedProgression.Value.Level);
                 }
             }
+
+            // Remove the class if it's been set to level 0
+            if (cls.Level < 1)
+            {
+                progression.Classes.Remove(cls);
+            }
         }
 
         private void RemoveSelection(ProgressionModel progression, int i, string levelStr, bool preserveFeatures)
@@ -139,12 +151,18 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         private void RemoveClassFeatures(string classProgressionBlueprintId, int level)
         {
+            var classData = Resources.ClassData.FirstOrDefault(c => c.Progression.BlueprintId == classProgressionBlueprintId);
+            if (classData == null)
+            {
+                return;
+            }
+
             var toRemove = Unit.Facts.Items.Where(fact => fact is FeatureFactItemModel feature
                 && feature.Source == classProgressionBlueprintId
                 && feature.SourceLevel == level).ToList();
             foreach (var fact in toRemove)
             {
-                RemoveFeature(fact);
+                RemoveFeatureAndRestoreReplaced(fact, classData.Id, level);
             }
         }
 
@@ -157,12 +175,29 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             }
         }
 
+        private void RemoveFeatureByBlueprintAndRestoreReplaced(string blueprintId, string classId, int removedLevel)
+        {
+            var toRemove = Unit.Facts.Items.Where(fact => fact.Blueprint == blueprintId).ToList();
+            foreach (var fact in toRemove)
+            {
+                RemoveFeatureAndRestoreReplaced(fact, classId, removedLevel);
+            }
+        }
+
         private void RemoveFeatureById(string id)
         {
             var toRemove = Unit.Facts.Items.Where(f => f.Id == id).ToList();
             foreach (var fact in toRemove)
             {
                 RemoveFeature(fact);
+            }
+        }
+        private void RemoveFeatureByIdAndRestoreReplaced(string id, string classId, int removedLevel)
+        {
+            var toRemove = Unit.Facts.Items.Where(f => f.Id == id).ToList();
+            foreach (var fact in toRemove)
+            {
+                RemoveFeatureAndRestoreReplaced(fact, classId, removedLevel);
             }
         }
 
@@ -190,6 +225,138 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             Unit.Descriptor.UISettings.m_AlreadyAutomaticallyAdded.Remove(fact.Blueprint);
         }
 
+        private void RemoveFeatureAndRestoreReplaced(FactItemModel fact, string classId, int removedLevel)
+        {
+            // Remove facts added by this fact
+            foreach (var component in fact.Components)
+            {
+                if (component.Value is AddFactsComponentModel addFactsComponent)
+                {
+                    foreach (var addedFact in addFactsComponent.Data.AppliedFacts)
+                    {
+                        if (addedFact is ActivatableAbilityFactItemModel activatableAbilityFact)
+                        {
+                            RemoveFeatureByIdAndRestoreReplaced(activatableAbilityFact.m_AppliedBuff.Id, classId, removedLevel);
+                        }
+
+                        RemoveFeatureByBlueprintAndRestoreReplaced(addedFact.Blueprint, classId, removedLevel);
+                    }
+                }
+            }
+
+            // Remove the fact itself
+            Unit.Facts.Items.Remove(fact);
+            Unit.Descriptor.UISettings.m_AlreadyAutomaticallyAdded.Remove(fact.Blueprint);
+
+            AddReplacedClassFeatures(classId, removedLevel, fact.Blueprint);
+        }
+
+        public void AddClass(string blueprintId)
+        {
+            var characterClass = Unit.Descriptor.Progression.Classes.FirstOrDefault(c => c.CharacterClass == blueprintId);
+            if (characterClass != null)
+            {
+                // Add a level to the class
+                characterClass.Level += 1;
+            }
+            else
+            {
+                // Add the class
+                characterClass = Unit.Descriptor.Progression.Classes.Add(ClassModel.Prepare);
+                characterClass.CharacterClass = blueprintId;
+                characterClass.Level = 1;
+            }
+
+            var classData = Resources.GetClassData(blueprintId);
+            var classLevel = classData.Progression.Levels.FirstOrDefault(l => l.Level == characterClass.Level);
+            if (classLevel == null)
+            {
+                return;
+            }
+
+            foreach (var feature in classLevel.Features)
+            {
+                AddFeature(characterClass.Level, classData.Progression.BlueprintId, feature.Id);
+                foreach (var featureToRemove in feature.RemoveFeaturesIdOnApply)
+                {
+                    RemoveFeatureByBlueprint(featureToRemove);
+                }
+            }
+
+            ApplyArchetypeLevel(characterClass.Id, characterClass.Level);
+        }
+
+        public void AddClassArchetype(string classId, string archetypeId)
+        {
+            var characterClass = Unit.Descriptor.Progression.Classes.First(c => c.CharacterClass == classId);
+            if (characterClass.Archetypes.Any(a => a == archetypeId))
+            {
+                return;
+            }
+
+            characterClass.Archetypes.Add(archetypeId);
+
+            for (int i = 1; i <= characterClass.Level; i++)
+            {
+                ApplyArchetypeLevel(classId, i);
+            }
+        }
+
+        private void ApplyArchetypeLevel(string classId, int level)
+        {
+            var characterClass = Unit.Descriptor.Progression.Classes.FirstOrDefault(c => c.Id == classId);
+            if (characterClass == null)
+            {
+                return;
+            }
+
+            var classData = Resources.GetClassData(characterClass.Id);
+            foreach (var archetype in characterClass.Archetypes ?? Enumerable.Empty<string>())
+            {
+                var archetypeData = classData.Archetypes.FirstOrDefault(a => a.Id == archetype);
+                foreach (var featureToRemove in archetypeData.RemoveFeatures
+                    .FirstOrDefault(f => f.Level == level)?.Features ?? Enumerable.Empty<FeatureBlueprintModel>())
+                {
+                    RemoveFeatureByBlueprint(featureToRemove.Id);
+                }
+                foreach (var featureToAdd in archetypeData.AddFeatures
+                    .FirstOrDefault(f => f.Level == level)?.Features ?? Enumerable.Empty<FeatureBlueprintModel>())
+                {
+                    AddFeature(level, classData.Progression.BlueprintId, featureToAdd.Id);
+                }
+            }
+        }
+
+        private void AddReplacedClassFeatures(string classId, int removedLevel, string removedFeatureId)
+        {
+            var classData = Resources.GetClassData(classId);
+            var removedFeature = classData.Progression
+                .Levels.FirstOrDefault(l => l.Level == removedLevel)
+                ?.Features.FirstOrDefault(f => f.Id == removedFeatureId);
+            if (removedFeature == null)
+            {
+                return;
+            }
+            foreach (var replacedFeature in removedFeature.RemoveFeaturesIdOnApply ?? Enumerable.Empty<string>())
+            {
+                AddReplacedClassFeature(classData, replacedFeature);
+            }
+        }
+
+        private void AddReplacedClassFeature(ClassBlueprintModel classData, string featureToAdd)
+        {
+            foreach (var level in classData.Progression.Levels)
+            {
+                var feature = level.Features.FirstOrDefault(f => f.Id == featureToAdd);
+                if (feature == null)
+                {
+                    continue;
+                }
+
+                AddFeature(level.Level, classData.Progression.BlueprintId, feature.Id);
+            }
+        }
+
         public void AddClassLevelFeatures(ProgressionItemModel progression, int level)
         {
             var blueprint = Resources.GetProgression(progression.Key);
@@ -199,6 +366,10 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             }
 
             var newLevel = blueprint.Levels.FirstOrDefault(l => l.Level == level);
+            if (newLevel == null)
+            {
+                return;
+            }
             foreach (var feature in newLevel.Features)
             {
                 if (Unit.Facts.Items.Any(f => f.Blueprint == feature.Id))
@@ -206,18 +377,23 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                     continue;
                 }
 
-                var missingFeatureTemplate = Resources.GetFeatTemplate(feature.Id);
-                if (missingFeatureTemplate == null)
-                {
-                    continue;
-                }
-
-                var missingFeature = (FeatureFactItemModel)Unit.Facts.Items.Add(FeatureFactItemModel.Prepare);
-                missingFeature.Import(missingFeatureTemplate);
-                missingFeature.Source = progression.Key;
-                missingFeature.SourceLevel = level;
-                missingFeature.Context.OwnerRef = Unit.UniqueId;
+                AddFeature(level, progression.Key, feature.Id);
             }
+        }
+
+        private void AddFeature(int level, string progressionId, string featureId)
+        {
+            var template = Resources.GetFeatTemplate(featureId);
+            if (template == null)
+            {
+                return;
+            }
+
+            var feature = (FeatureFactItemModel)Unit.Facts.Items.Add(FeatureFactItemModel.Prepare);
+            feature.Import(template);
+            feature.Source = progressionId;
+            feature.SourceLevel = level;
+            feature.Context.OwnerRef = Unit.UniqueId;
         }
     }
 }

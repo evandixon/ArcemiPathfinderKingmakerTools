@@ -8,6 +8,7 @@ namespace Arcemi.Pathfinder.Kingmaker.Models
 {
     public class ClassArchetypeBlueprintModel
     {
+        public string Id { get; set; }
         public string ReplacementSpellbook { get; set; }
         public bool RemoveSpellbook { get; set; }
         public List<ProgressionLevelBlueprintModel> AddFeatures { get; set; } = new();

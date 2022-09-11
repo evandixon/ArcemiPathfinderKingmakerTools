@@ -9,6 +9,7 @@ namespace Arcemi.Pathfinder.Kingmaker
     {
         PathfinderAppData AppData { get; }
         BlueprintMetadata Blueprints { get; }
+        List<ClassBlueprintModel> ClassData { get; }
 
         string GetPortraitId(string blueprint);
         string GetCharacterPotraitIdentifier(string blueprint);
@@ -30,6 +31,7 @@ namespace Arcemi.Pathfinder.Kingmaker
         string GetItemName(string blueprint);
 
         FactItemModel GetFeatTemplate(string blueprint);
+        ClassBlueprintModel GetClassData(string classId);
         ProgressionBlueprintModel GetProgression(string blueprint);
     }
 }

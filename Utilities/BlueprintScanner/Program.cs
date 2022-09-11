@@ -129,6 +129,7 @@ foreach (var blueprintMetadata in blueprintData.GetEntries(BlueprintTypes.Archet
 
     archetypeModels.Add(blueprintMetadata.Id, new ClassArchetypeBlueprintModel
     {
+        Id = blueprintMetadata.Id,
         ReplacementSpellbook = GetBlueprintId(blueprintArchetype.m_ReplaceSpellbook),
         RemoveSpellbook = blueprintArchetype.RemoveSpellbook,
         AddFeatures = blueprintArchetype.AddFeatures.Select(l => ToModel(l)).ToList(),

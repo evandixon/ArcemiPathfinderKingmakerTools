@@ -15,7 +15,7 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
         {
         }
 
-        public IReadOnlyList<ClassModel> Classes => A.List(factory: a => new ClassModel(a));
+        public ListAccessor<ClassModel> Classes => A.List(factory: a => new ClassModel(a));
         public FeaturesModel Features => A.Object(factory: a => new FeaturesModel(a));
         public ListAccessor<ProgressionItemModel> Items => A.List("m_Progressions", a => new ProgressionItemModel(a));
         public ListAccessor<ProgressionSelectionModel> Selections => A.List("m_Selections", a => new ProgressionSelectionModel(a));
