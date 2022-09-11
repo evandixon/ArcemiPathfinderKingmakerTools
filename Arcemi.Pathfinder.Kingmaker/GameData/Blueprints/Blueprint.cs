@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
     /// <summary>
     /// A model for a JBP blueprint file 

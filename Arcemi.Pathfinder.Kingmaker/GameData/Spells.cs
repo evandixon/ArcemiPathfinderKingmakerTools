@@ -1,4 +1,5 @@
-﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
+﻿using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
+using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
 
 namespace Arcemi.Pathfinder.Kingmaker.GameData
 {

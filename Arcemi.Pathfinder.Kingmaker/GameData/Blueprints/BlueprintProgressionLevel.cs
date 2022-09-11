@@ -4,7 +4,7 @@ using System.Text;
 using System.Linq;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
     public class BlueprintProgressionLevel : Model
     {

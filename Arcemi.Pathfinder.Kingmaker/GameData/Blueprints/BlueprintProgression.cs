@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
     public class BlueprintProgression : BlueprintData
     {

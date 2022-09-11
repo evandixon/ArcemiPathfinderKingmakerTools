@@ -11,6 +11,7 @@ using Arcemi.Pathfinder.Kingmaker.GameData;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
 using Arcemi.Pathfinder.Kingmaker.Models;
+using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
 
 namespace Arcemi.Pathfinder.SaveGameEditor.Models
 {
@@ -134,9 +135,9 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         private void LoadProgressions()
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "_Defs", "Progressions.json");
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "_Defs", "ClassData.json");
             var contents = File.ReadAllText(path);
-            _resources.Progressions = JsonConvert.DeserializeObject<List<ProgressionBlueprintModel>>(contents);
+            _resources.ClassData = JsonConvert.DeserializeObject<List<ClassBlueprintModel>>(contents);
         }
 
 

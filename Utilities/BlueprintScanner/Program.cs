@@ -1,4 +1,5 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using Arcemi.Pathfinder.Kingmaker.Models;
 using Arcemi.Pathfinder.SaveGameEditor.Models;
@@ -14,74 +15,45 @@ await viewModel.InitializeAsync();
 var blueprintData = BlueprintMetadata.Load(gameDirectory);
 var references = new References(viewModel.Resources);
 
-var progressionTemplates = new List<ProgressionBlueprintModel>();
-foreach (var progressionBlueprintReference in blueprintData.GetEntries(BlueprintTypes.Progression))
+Blueprint? LoadBlueprint(IBlueprintMetadataEntry blueprintMetadata)
 {
-    Console.WriteLine(progressionBlueprintReference.DisplayName);
-    var blueprintPath = Path.Combine(extractedBlueprintsDirectory, progressionBlueprintReference.Path);
+    Console.WriteLine(blueprintMetadata.DisplayName);
+    var blueprintPath = Path.Combine(extractedBlueprintsDirectory, blueprintMetadata.Path);
     if (!File.Exists(blueprintPath))
     {
         Console.WriteLine("Doesn't exist");
-        continue;
+        return null;
     }
 
     var blueprintJson = JObject.Parse(File.ReadAllText(blueprintPath));
-    var blueprint = new Blueprint(new ModelDataAccessor(blueprintJson, references, viewModel.Resources));
-
-    if (blueprint.Data is not BlueprintProgression blueprintProgression)
-    {
-        continue;
-    }
-
-    var progressionTemplate = new ProgressionBlueprintModel
-    {
-        BlueprintId = blueprint.AssetId
-    };
-    foreach (var progressionLevel in blueprintProgression.LevelEntries)
-    {
-        Console.WriteLine("- " + progressionLevel.Level.ToString());
-        var level = new ProgressionBlueprintLevel
-        {
-            Level = progressionLevel.Level
-        };
-
-        foreach (var blueprintId in progressionLevel.GetFeatureBlueprintIds())
-        {
-            Console.WriteLine("    - " + viewModel.Resources.GetFeatTemplate(blueprintId)?.DisplayName ?? blueprintId);
-            level.FeatureBlueprintIds.Add(blueprintId);
-        }
-        progressionTemplate.Levels.Add(level);
-    }
-    progressionTemplates.Add(progressionTemplate);
+    return new Blueprint(new ModelDataAccessor(blueprintJson, references, viewModel.Resources));
 }
-File.WriteAllText("Progressions.json", JsonConvert.SerializeObject(progressionTemplates));
+
+string? GetBlueprintId(string? blueprintReferenceId)
+{
+    return blueprintReferenceId?.Replace("!bp_", "");
+}
 
 var featTemplates = new List<JObject>();
-foreach (var featureBlueprintReference in blueprintData.GetEntries(BlueprintTypes.Feature))
+var featModels = new Dictionary<string, FeatureBlueprintModel>();
+foreach (var blueprintMetadata in blueprintData.GetEntries(BlueprintTypes.Feature))
 {
-    Console.WriteLine(featureBlueprintReference.DisplayName);
-    var blueprintPath = Path.Combine(extractedBlueprintsDirectory, featureBlueprintReference.Path);
-    if (!File.Exists(blueprintPath))
+    var blueprint = LoadBlueprint(blueprintMetadata);
+    if (blueprint?.Data is not BlueprintFeature blueprintFeature)
     {
-        Console.WriteLine("Doesn't exist");
         continue;
     }
-
-    var blueprintJson = JObject.Parse(File.ReadAllText(blueprintPath));
-    var blueprint = new Blueprint(new ModelDataAccessor(blueprintJson, references, viewModel.Resources));
 
     var factTemplateRaw = new JObject();
     FeatureFactItemModel.Prepare(references, factTemplateRaw);
     var factTemplateAccessor = new ModelDataAccessor(factTemplateRaw, new References(viewModel.Resources), viewModel.Resources);
     var factTemplate = FactItemModel.Factory(factTemplateAccessor);
-    factTemplate.Blueprint = featureBlueprintReference.Id;
-    factTemplate.Context = new FactContextModel(new ModelDataAccessor(new JObject(), references, viewModel.Resources));
-    factTemplate.Context.AssociatedBlueprint = featureBlueprintReference.Id;
-        
-    if (blueprint.Data is not BlueprintFeature blueprintFeature)
+    factTemplate.Blueprint = blueprintMetadata.Id;
+    factTemplate.Context = new FactContextModel(new ModelDataAccessor(new JObject(), references, viewModel.Resources))
     {
-        continue;
-    }
+        AssociatedBlueprint = blueprintMetadata.Id
+    };
+
     foreach (var component in blueprintFeature.Components)
     {
         if (factTemplate.Components.ContainsKey(component.Name))
@@ -97,6 +69,92 @@ foreach (var featureBlueprintReference in blueprintData.GetEntries(BlueprintType
     }
 
     featTemplates.Add(factTemplateRaw);
+
+    featModels.Add(blueprintMetadata.Id, new FeatureBlueprintModel
+    {
+        Id = blueprintMetadata.Id,
+        RemoveFeaturesIdOnApply = blueprintFeature.Components
+            .Where(f => f is BlueprintComponentRemoveFeatureOnApply).Cast<BlueprintComponentRemoveFeatureOnApply>()
+            .Select(f => GetBlueprintId(f.m_Feature))
+            .ToList()
+    });
+}
+File.WriteAllText("FeatTemplates.json", JsonConvert.SerializeObject(featTemplates));
+
+ProgressionLevelBlueprintModel ToModel(BlueprintProgressionLevel progressionLevel)
+{
+    Console.WriteLine("- " + progressionLevel.Level.ToString());
+    var level = new ProgressionLevelBlueprintModel
+    {
+        Level = progressionLevel.Level
+    };
+
+    foreach (var blueprintId in progressionLevel.GetFeatureBlueprintIds())
+    {
+        Console.WriteLine("    - " + viewModel.Resources.GetFeatTemplate(blueprintId)?.DisplayName ?? blueprintId);
+        var feature = featModels.GetValueOrDefault(blueprintId);
+        if (feature != null)
+        {
+            level.Features.Add(feature);
+        }
+    }
+    return level;
 }
 
-File.WriteAllText("FeatTemplates.json", JsonConvert.SerializeObject(featTemplates));
+var progressionTemplates = new Dictionary<string, ProgressionBlueprintModel>();
+foreach (var blueprintMetadata in blueprintData.GetEntries(BlueprintTypes.Progression))
+{
+    var blueprint = LoadBlueprint(blueprintMetadata);
+    if (blueprint?.Data is not BlueprintProgression blueprintProgression)
+    {
+        continue;
+    }
+
+    progressionTemplates.Add(blueprint.AssetId, new ProgressionBlueprintModel
+    {
+        BlueprintId = blueprint.AssetId,
+        Levels = blueprintProgression.LevelEntries.Select(l => ToModel(l)).ToList()
+    });
+}
+
+
+var archetypeModels = new Dictionary<string, ClassArchetypeBlueprintModel>();
+foreach (var blueprintMetadata in blueprintData.GetEntries(BlueprintTypes.Archetype))
+{
+    var blueprint = LoadBlueprint(blueprintMetadata);
+    if (blueprint?.Data is not BlueprintArchetype blueprintArchetype)
+    {
+        continue;
+    }
+
+    archetypeModels.Add(blueprintMetadata.Id, new ClassArchetypeBlueprintModel
+    {
+        ReplacementSpellbook = GetBlueprintId(blueprintArchetype.m_ReplaceSpellbook),
+        RemoveSpellbook = blueprintArchetype.RemoveSpellbook,
+        AddFeatures = blueprintArchetype.AddFeatures.Select(l => ToModel(l)).ToList(),
+        RemoveFeatures = blueprintArchetype.RemoveFeatures.Select(l => ToModel(l)).ToList(),
+    });
+}
+
+var classModels = new Dictionary<string, ClassBlueprintModel>();
+foreach (var blueprintMetadata in blueprintData.GetEntries(BlueprintTypes.CharacterClass))
+{
+    var blueprint = LoadBlueprint(blueprintMetadata);
+    if (blueprint?.Data is not BlueprintCharacterClass blueprintCharacterClass)
+    {
+        continue;
+    }
+
+    classModels.Add(blueprintMetadata.Id, new ClassBlueprintModel
+    {
+        Id = blueprintMetadata.Id,
+        SpellbookId = GetBlueprintId(blueprintCharacterClass.m_Spellbook),
+        IsMythic = blueprintCharacterClass.IsMythic,
+        Archetypes = blueprintCharacterClass.m_Archetypes
+            .Select(a => archetypeModels.GetValueOrDefault(GetBlueprintId(a.Replace("!bp_", ""))!))
+            .Where(a => a != null)
+            .ToList(),
+        Progression = progressionTemplates.GetValueOrDefault(GetBlueprintId(blueprintCharacterClass.m_Progression)!)
+    });
+}
+File.WriteAllText("ClassData.json", JsonConvert.SerializeObject(classModels.Values));

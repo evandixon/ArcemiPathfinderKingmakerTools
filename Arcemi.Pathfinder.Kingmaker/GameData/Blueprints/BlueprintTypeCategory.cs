@@ -1,4 +1,4 @@
-﻿namespace Arcemi.Pathfinder.Kingmaker.GameData
+﻿namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
     public enum BlueprintTypeCategory
     {

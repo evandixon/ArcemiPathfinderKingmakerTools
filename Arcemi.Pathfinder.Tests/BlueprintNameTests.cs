@@ -1,4 +1,4 @@
-﻿using Arcemi.Pathfinder.Kingmaker.GameData;
+﻿using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
 using System.Collections.Generic;
 using Xunit;
 

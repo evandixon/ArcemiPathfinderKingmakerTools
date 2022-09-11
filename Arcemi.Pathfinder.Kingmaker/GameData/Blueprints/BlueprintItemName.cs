@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
     public class BlueprintItemName : BlueprintName
     {
@@ -118,7 +118,7 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
         public static new BlueprintName Detect(string id, BlueprintType type, string name)
         {
             if (string.IsNullOrEmpty(name)) return new BlueprintName(type, name, name);
-            if (id.Eq(Blueprints.Weapons.PurpleStoneKnife))
+            if (id.Eq(BlueprintIds.Weapons.PurpleStoneKnife))
             {
                 return new BlueprintItemName(type, "Purple Stone Knife", name, new[] { "Purple", "Stone", "Knife" }, enhancement: 1);
             }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
     /// <summary>
     /// A model for cheatdata.json

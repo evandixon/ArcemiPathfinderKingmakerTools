@@ -1,4 +1,5 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
 using Arcemi.Pathfinder.Kingmaker.Models;
 using System.Collections.Generic;
 

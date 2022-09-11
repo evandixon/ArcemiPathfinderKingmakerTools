@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
     public class BlueprintData : Model
     {
@@ -15,6 +15,14 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
         public static BlueprintData Factory(ModelDataAccessor accessor)
         {
             var type = accessor.TypeValue();
+            if (string.Equals(type, BlueprintCharacterClass.TypeRef, StringComparison.Ordinal))
+            {
+                return new BlueprintCharacterClass(accessor);
+            }
+            if (string.Equals(type, BlueprintArchetype.TypeRef, StringComparison.Ordinal))
+            {
+                return new BlueprintArchetype(accessor);
+            }
             if (string.Equals(type, BlueprintFeature.TypeRef, StringComparison.Ordinal))
             {
                 return new BlueprintFeature(accessor);

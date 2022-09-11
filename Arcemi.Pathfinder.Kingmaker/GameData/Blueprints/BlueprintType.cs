@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
     public class BlueprintType
     {

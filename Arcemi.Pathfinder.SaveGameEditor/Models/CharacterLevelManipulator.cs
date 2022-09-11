@@ -1,5 +1,6 @@
 ﻿using Arcemi.Pathfinder.Kingmaker;
 using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -112,32 +113,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             {
                 foreach (var decreasedProgression in progressionsDecreased)
                 {
-                    var blueprint = Resources.GetProgression(decreasedProgression.Key);
-                    if (blueprint == null) 
-                    {
-                        continue;
-                    }
-
-                    var newLevel = blueprint.Levels.FirstOrDefault(l => l.Level == decreasedProgression.Value.Level);
-                    foreach (var featureId in newLevel.FeatureBlueprintIds)
-                    {
-                        if (Unit.Facts.Items.Any(f => f.Blueprint == featureId))
-                        {
-                            continue;
-                        }
-
-                        var missingFeatureTemplate = Resources.GetFeatTemplate(featureId);
-                        if (missingFeatureTemplate == null)
-                        {
-                            continue;
-                        }
-
-                        var missingFeature = (FeatureFactItemModel)Unit.Facts.Items.Add(FeatureFactItemModel.Prepare);
-                        missingFeature.Import(missingFeatureTemplate);
-                        missingFeature.Source = decreasedProgression.Key;
-                        missingFeature.SourceLevel = decreasedProgression.Value.Level;
-                        missingFeature.Context.OwnerRef = Unit.UniqueId;
-                    }
+                    AddClassLevelFeatures(decreasedProgression, decreasedProgression.Value.Level);
                 }
             }
         }
@@ -212,6 +188,36 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             // Remove the fact itself
             Unit.Facts.Items.Remove(fact);
             Unit.Descriptor.UISettings.m_AlreadyAutomaticallyAdded.Remove(fact.Blueprint);
+        }
+
+        public void AddClassLevelFeatures(ProgressionItemModel progression, int level)
+        {
+            var blueprint = Resources.GetProgression(progression.Key);
+            if (blueprint == null)
+            {
+                return;
+            }
+
+            var newLevel = blueprint.Levels.FirstOrDefault(l => l.Level == level);
+            foreach (var feature in newLevel.Features)
+            {
+                if (Unit.Facts.Items.Any(f => f.Blueprint == feature.Id))
+                {
+                    continue;
+                }
+
+                var missingFeatureTemplate = Resources.GetFeatTemplate(feature.Id);
+                if (missingFeatureTemplate == null)
+                {
+                    continue;
+                }
+
+                var missingFeature = (FeatureFactItemModel)Unit.Facts.Items.Add(FeatureFactItemModel.Prepare);
+                missingFeature.Import(missingFeatureTemplate);
+                missingFeature.Source = progression.Key;
+                missingFeature.SourceLevel = level;
+                missingFeature.Context.OwnerRef = Unit.UniqueId;
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
 using Arcemi.Pathfinder.Kingmaker.Models;
 using System;
@@ -12,7 +13,7 @@ namespace Arcemi.Pathfinder.Kingmaker
         public PathfinderAppData AppData { get; set; }
         public BlueprintMetadata Blueprints { get; set; }
         public List<FeatureFactItemModel> FeatTemplates { get; set; }
-        public List<ProgressionBlueprintModel> Progressions { get; set; }
+        public List<ClassBlueprintModel> ClassData { get; set; }
 
         public IReadOnlyDictionary<PortraitCategory, IReadOnlyList<Portrait>> GetAvailablePortraits()
         {
@@ -168,9 +169,16 @@ namespace Arcemi.Pathfinder.Kingmaker
             return FeatTemplates.FirstOrDefault(t => t.Blueprint == blueprint);
         }
 
-        public ProgressionBlueprintModel GetProgression(string blueprint)
+        public ClassBlueprintModel GetClassData(string classId)
         {
-            return Progressions.FirstOrDefault(p => p.BlueprintId == blueprint);
+            return ClassData.FirstOrDefault(c => c.Id == classId);
+        }
+
+        public ProgressionBlueprintModel GetProgression(string progressionId)
+        {
+            return ClassData
+                .FirstOrDefault(c => c.Progression?.BlueprintId == progressionId)
+                ?.Progression;
         }
     }
 }

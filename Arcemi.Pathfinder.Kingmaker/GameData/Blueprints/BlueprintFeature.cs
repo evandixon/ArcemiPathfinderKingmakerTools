@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
     public class BlueprintFeature : BlueprintData
     {
@@ -13,6 +13,6 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
         {
         }
 
-        public ListAccessor<BlueprintFeatureComponent> Components => A.List(factory: BlueprintFeatureComponent.Factory);
+        public ListAccessor<BlueprintComponent> Components => A.List(factory: BlueprintComponent.Factory);
     }
 }

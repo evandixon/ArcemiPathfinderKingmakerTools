@@ -1,6 +1,6 @@
-﻿namespace Arcemi.Pathfinder.Kingmaker.GameData
+﻿namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
-    public static class Blueprints
+    public static class BlueprintIds
     {
         public static class Weapons
         {
