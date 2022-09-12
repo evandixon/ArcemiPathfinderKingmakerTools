@@ -42,11 +42,11 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             return true;
         }
 
-        public void DowngradeClass(ClassModel cls, bool preserveFeatures = false)
+        public void DowngradeClass(ClassModel cls)
         {
+            var classData = Resources.GetClassData(cls.CharacterClass);
             if (!ProgressionBlueprints.TryGetValue(cls.CharacterClass, out var blueprints))
             {
-                var classData = Resources.GetClassData(cls.CharacterClass);
                 blueprints = new List<IBlueprintMetadataEntry>
                 {
                     Resources.Blueprints.Get(classData.Progression.BlueprintId)
@@ -104,23 +104,23 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 // Remove class selections
                 if (progressionLookup.Contains(selection.Value.Source.Blueprint))
                 {
-                    RemoveSelection(progression, i, clsLevelStr, preserveFeatures);
+                    RemoveSelection(progression, i, clsLevelStr);
                 }
 
                 // Remove character selections
                 if (!cls.IsMythic)
                 {
-                    RemoveSelection(progression, i, levelStr, preserveFeatures);
+                    RemoveSelection(progression, i, levelStr);
                 }
             }
 
-            // If enabled, re-add any features that were superceded by ones we just removed
-            if (!preserveFeatures)
+            // Remove features added by the class itself
+            RemoveClassFeatures(classData.Progression.BlueprintId, int.Parse(clsLevelStr));
+
+            // Re-add any features that were superceded by ones we just removed
+            foreach (var decreasedProgression in progressionsDecreased)
             {
-                foreach (var decreasedProgression in progressionsDecreased)
-                {
-                    AddClassLevelFeatures(decreasedProgression, decreasedProgression.Value.Level);
-                }
+                AddClassLevelFeatures(decreasedProgression, decreasedProgression.Value.Level);
             }
 
             // Remove the class if it's been set to level 0
@@ -130,15 +130,15 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             }
         }
 
-        private void RemoveSelection(ProgressionModel progression, int i, string levelStr, bool preserveFeatures)
+        private void RemoveSelection(ProgressionModel progression, int i, string levelStr)
         {
             var selection = progression.Selections[i];
 
             if (selection.Value.ByLevel.ContainsKey(levelStr))
             {
-                if (!preserveFeatures)
+                foreach (var featureId in selection.Value.ByLevel[levelStr])
                 {
-                    RemoveClassFeatures(selection.Value.Source.Blueprint, int.Parse(levelStr));
+                    RemoveFeatureById(featureId);
                 }
 
                 selection.Value.ByLevel.Remove(levelStr);
@@ -234,7 +234,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 {
                     foreach (var addedFact in addFactsComponent.Data.AppliedFacts)
                     {
-                        if (addedFact is ActivatableAbilityFactItemModel activatableAbilityFact)
+                        if (addedFact is ActivatableAbilityFactItemModel activatableAbilityFact && !string.IsNullOrEmpty(activatableAbilityFact?.m_AppliedBuff?.Id))
                         {
                             RemoveFeatureByIdAndRestoreReplaced(activatableAbilityFact.m_AppliedBuff.Id, classId, removedLevel);
                         }
@@ -383,6 +383,11 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         private void AddFeature(int level, string progressionId, string featureId)
         {
+            if (Unit.Facts.Items.Any(f => f.Blueprint == featureId))
+            {
+                return;
+            }
+
             var template = Resources.GetFeatTemplate(featureId);
             if (template == null)
             {
