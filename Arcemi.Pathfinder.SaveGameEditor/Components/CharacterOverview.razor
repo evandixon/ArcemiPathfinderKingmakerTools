@@ -68,47 +68,6 @@
 </div>
 
 <div class="row">
-    <h3 class="col-md-12">Classes</h3>
-</div>
-<div class="form-list static-content">
-    <div class="row">
-        <div class="col-md-4">
-            <label class="form-label">Name</label>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Specialization</label>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Level</label>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-sm btn-info btn-h4" @onclick="() => OpenAddClassAsync()">
-                <span class="oi oi-plus"></span>
-            </button>
-        </div>
-    </div>
-
-    @foreach (var cls in Character.Progression.Classes) {
-    <div class="row">
-        <div class="col-md-4 overflow-hidden">
-            <label class="form-label">@cls.TypeName</label>
-        </div>
-        <div class="col-md-4 overflow-hidden">
-            <label class="form-label">@cls.ArchetypeName</label>
-        </div>
-        <div class="col-md-2">
-            <input class="form-control" type="number" readonly="readonly" value="@cls.Level" />
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-sm btn-warning" disabled="@(!LevelManipulator.CanDowngrade(cls))" @onclick="() => DowngradeClass(cls)">
-                <span class="oi oi-arrow-thick-bottom"></span>
-            </button>
-        </div>
-    </div>
-    }
-</div>
-
-<div class="row">
     <div class="col-md-12">
         <h3>
             Alignment
@@ -340,52 +299,12 @@
     </Footer>
 </Modal>
 
-<Modal @ref="modalAddClass">
-    <Title>Add class</Title>
-    <Body>
-        <b>Warning: </b> <span>This feature is experimental. Be sure to keep a backup of your save.</span>
-        <TabControl StartIndex="0">
-            <Tab Name="Search">
-                <Content>
-                    <Search TItem="IBlueprintMetadataEntry" Items="AvailableClassesBase" ItemSearchable="b => b.Name.DisplayName" Context="item" OnSelect="a => AddClassBlueprint = a.Item.Id">
-                        <ResultItemTemplate>
-                            @item.Name.DisplayName
-                        </ResultItemTemplate>
-                    </Search>
-                </Content>
-            </Tab>
-            <Tab Name="All">
-                <Content>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <label class="form-label">Class</label>
-                            <select class="form-control" @bind="AddClassBlueprint">
-                                <option value="">Select feat...</option>
-                                @foreach (var blueprint in AvailableClassesBase) {
-                                    <option value="@blueprint.Id">@blueprint.DisplayName</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-                </Content>
-            </Tab>
-        </TabControl>
-    </Body>
-    <Footer>
-        <button type="button" class="btn btn-primary" data-dismiss="modal" disabled="@AddClassIsInvalid" @onclick="AddClassAsync">
-            Confirm
-        </button>
-        <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => modalAddClass.CloseAsync()">Cancel</button>
-    </Footer>
-</Modal>
-
 @code {
     [Parameter]
     public UnitEntityModel Unit { get; set; }
 
     private CharacterModel Character => Unit?.Descriptor;
     private CompanionPartItemModel CompanionPart => Unit?.Parts?.Items?.OfType<CompanionPartItemModel>()?.FirstOrDefault();
-    private CharacterLevelManipulator LevelManipulator;
 
     private const int OffsetX = 20;
     private const int OffsetY = 6;
@@ -397,14 +316,7 @@
     private AlignmentMaskView AlignmentMask;
     private bool IsAlignmentAllowed => AlignmentMask.IsAlignmentAllowed(Character.Alignment.Vector.Direction);
 
-    private Modal modalAddClass;
     private Modal modalEditAlignmentHistory;
-
-    private string AddClassBlueprint;
-    private bool AddClassIsInvalid => string.IsNullOrEmpty(AddClassBlueprint);
-    
-    private IEnumerable<IBlueprintMetadataEntry> AvailableClassesBase => Resources.Blueprints.GetEntries(BlueprintTypes.CharacterClass)
-        .Where(IsValidClass);
 
     protected override void OnInitialized()
     {
@@ -413,7 +325,6 @@
 
     protected override void OnParametersSet()
     {
-        LevelManipulator = new CharacterLevelManipulator(Unit, Resources);
         if (Model.CanEdit) {
             AlignmentMask.Set(Character.Alignment?.LockedAlignmentMask);
         }
@@ -442,26 +353,5 @@
     private void RemoveAlignmentEntries()
     {
         Character.Alignment.History.Clear();
-    }
-
-    private void DowngradeClass(ClassModel cls)
-    {
-        LevelManipulator.DowngradeClass(cls);
-    }
-
-    private async Task OpenAddClassAsync()
-    {
-        await modalAddClass.OpenAsync();
-    }
-
-    private bool IsValidClass(IBlueprintMetadataEntry x)
-    {
-        return true;
-    }
-
-    private async Task AddClassAsync()
-    {
-        LevelManipulator.AddClass(AddClassBlueprint);
-        await modalAddClass.CloseAsync();
     }
 }

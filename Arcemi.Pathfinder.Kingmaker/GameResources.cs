@@ -14,6 +14,7 @@ namespace Arcemi.Pathfinder.Kingmaker
         public BlueprintMetadata Blueprints { get; set; }
         public List<FeatureFactItemModel> FeatTemplates { get; set; }
         public List<ClassBlueprintModel> ClassData { get; set; }
+        public List<ProgressionBlueprintModel> Progressions { get; set; }
 
         public IReadOnlyDictionary<PortraitCategory, IReadOnlyList<Portrait>> GetAvailablePortraits()
         {
@@ -176,9 +177,7 @@ namespace Arcemi.Pathfinder.Kingmaker
 
         public ProgressionBlueprintModel GetProgression(string progressionId)
         {
-            return ClassData
-                .FirstOrDefault(c => c.Progression?.BlueprintId == progressionId)
-                ?.Progression;
+            return Progressions.FirstOrDefault(p => p.BlueprintId == progressionId);
         }
     }
 }

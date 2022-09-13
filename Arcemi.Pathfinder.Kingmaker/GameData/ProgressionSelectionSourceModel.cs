@@ -8,6 +8,6 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
         {
         }
 
-        public string Blueprint => A.Value<string>();
+        public string Blueprint { get => A.Value<string>(); set => A.Value(value); }
     }
 }

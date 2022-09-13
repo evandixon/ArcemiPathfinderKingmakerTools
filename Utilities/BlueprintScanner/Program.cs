@@ -36,7 +36,9 @@ string? GetBlueprintId(string? blueprintReferenceId)
 
 var featTemplates = new List<JObject>();
 var featModels = new Dictionary<string, FeatureBlueprintModel>();
-foreach (var blueprintMetadata in blueprintData.GetEntries(BlueprintTypes.Feature))
+foreach (var blueprintMetadata in 
+    blueprintData.GetEntries(BlueprintTypes.Feature)
+    .Concat(blueprintData.GetEntries(BlueprintTypes.FeatureSelection)))
 {
     var blueprint = LoadBlueprint(blueprintMetadata);
     if (blueprint?.Data is not BlueprintFeature blueprintFeature)
@@ -70,14 +72,23 @@ foreach (var blueprintMetadata in blueprintData.GetEntries(BlueprintTypes.Featur
 
     featTemplates.Add(factTemplateRaw);
 
-    featModels.Add(blueprintMetadata.Id, new FeatureBlueprintModel
+    var featModel = new FeatureBlueprintModel
     {
         Id = blueprintMetadata.Id,
         RemoveFeaturesIdOnApply = blueprintFeature.Components
             .Where(f => f is BlueprintComponentRemoveFeatureOnApply).Cast<BlueprintComponentRemoveFeatureOnApply>()
             .Select(f => GetBlueprintId(f.m_Feature))
             .ToList()
-    });
+    };
+    if (blueprintFeature is BlueprintFeatureSelection blueprintFeatureSelection)
+    {
+        featModel.IsSelection = true;
+        featModel.SelectionFeatureIdOptions = blueprintFeatureSelection
+            .m_AllFeatures
+            .Select(f => GetBlueprintId(f))
+            .ToList();
+    }
+    featModels.Add(blueprintMetadata.Id, featModel);
 }
 File.WriteAllText("FeatTemplates.json", JsonConvert.SerializeObject(featTemplates));
 
@@ -116,7 +127,7 @@ foreach (var blueprintMetadata in blueprintData.GetEntries(BlueprintTypes.Progre
         Levels = blueprintProgression.LevelEntries.Select(l => ToModel(l)).ToList()
     });
 }
-
+File.WriteAllText("Progressions.json", JsonConvert.SerializeObject(progressionTemplates.Values));
 
 var archetypeModels = new Dictionary<string, ClassArchetypeBlueprintModel>();
 foreach (var blueprintMetadata in blueprintData.GetEntries(BlueprintTypes.Archetype))

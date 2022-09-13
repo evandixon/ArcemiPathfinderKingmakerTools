@@ -19,7 +19,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arcemi.Pathfinder.Tests", "
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Utilities", "Utilities", "{B1DBA9A2-A893-4CF4-8377-D8AEF3CFDFFA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlueprintScanner", "Utilities\BlueprintScanner\BlueprintScanner.csproj", "{0E1E4394-D41E-4CF6-B0E2-28F2DBA734A9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlueprintScanner", "Utilities\BlueprintScanner\BlueprintScanner.csproj", "{0E1E4394-D41E-4CF6-B0E2-28F2DBA734A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

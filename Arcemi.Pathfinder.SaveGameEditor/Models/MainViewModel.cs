@@ -107,6 +107,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
         {
             _resources.Blueprints = BlueprintMetadata.Load(Config.GameFolder);
             LoadFeatTemplates();
+            LoadClassData();
             LoadProgressions();
 
             var wwwRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot");
@@ -133,11 +134,18 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             _resources.FeatTemplates = templates;
         }
 
-        private void LoadProgressions()
+        private void LoadClassData()
         {
             var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "_Defs", "ClassData.json");
             var contents = File.ReadAllText(path);
             _resources.ClassData = JsonConvert.DeserializeObject<List<ClassBlueprintModel>>(contents);
+        }
+
+        private void LoadProgressions()
+        {
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "_Defs", "Progressions.json");
+            var contents = File.ReadAllText(path);
+            _resources.Progressions = JsonConvert.DeserializeObject<List<ProgressionBlueprintModel>>(contents);
         }
 
 

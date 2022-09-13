@@ -19,18 +19,26 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
             {
                 return new BlueprintCharacterClass(accessor);
             }
+
             if (string.Equals(type, BlueprintArchetype.TypeRef, StringComparison.Ordinal))
             {
                 return new BlueprintArchetype(accessor);
             }
-            if (string.Equals(type, BlueprintFeature.TypeRef, StringComparison.Ordinal))
+
+            if (string.Equals(type, BlueprintFeatureSelection.TypeRef, StringComparison.Ordinal))
+            {
+                return new BlueprintFeatureSelection(accessor);
+            }
+            else if (string.Equals(type, BlueprintFeature.TypeRef, StringComparison.Ordinal))
             {
                 return new BlueprintFeature(accessor);
             }
+
             if (string.Equals(type, BlueprintProgression.TypeRef, StringComparison.Ordinal))
             {
                 return new BlueprintProgression(accessor);
             }
+
             return new BlueprintData(accessor);
         }
     }

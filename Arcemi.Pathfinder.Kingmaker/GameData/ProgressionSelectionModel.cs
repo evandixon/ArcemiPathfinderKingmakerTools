@@ -1,4 +1,5 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
+using Newtonsoft.Json.Linq;
 
 namespace Arcemi.Pathfinder.Kingmaker.GameData
 {
@@ -10,6 +11,15 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
 
         public string Key { get => A.Value<string>(); set => A.Value(value); }
         public ProgressionSelectionValueModel Value => A.Object(factory: a => new ProgressionSelectionValueModel(a));
+
+        public static void Prepare(IReferences refs, JObject obj)
+        {
+            obj.Add(nameof(Value), JToken.FromObject(new 
+            { 
+                m_SelectionsByLevel = new object(),
+                Source = new object()
+            }));
+        }
     }
 
     public class ProgressionSelectionValueModel : RefModel
