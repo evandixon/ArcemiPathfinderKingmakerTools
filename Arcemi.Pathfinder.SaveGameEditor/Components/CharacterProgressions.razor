@@ -136,7 +136,7 @@
 
     private void RemoveFeature(ProgressionFeatureRow viewModel)
     {
-        if (CharacterLevelManipulator.RemoveFeatureByBlueprint(viewModel.FeatureBlueprintId))
+        if (CharacterLevelManipulator.RemoveFeatureByBlueprint(viewModel.FeatureBlueprintId, viewModel.Level, viewModel.ProgressionBlueprintId))
         {
             ViewModels.Remove(viewModel);
         }
@@ -147,7 +147,7 @@
         Unit.Descriptor.Progression.ReplaceSelection(viewModel.FeatureBlueprintId, viewModel.ProgressionBlueprintId, viewModel.Level, viewModel.SelectionValue, args.Value as string);
         if (!string.IsNullOrEmpty(viewModel.SelectionValue))
         {
-            CharacterLevelManipulator.RemoveFeatureByBlueprint(viewModel.SelectionValue);
+            CharacterLevelManipulator.RemoveFeatureByBlueprint(viewModel.SelectionValue, viewModel.Level, viewModel.ProgressionBlueprintId);
         }
         if (!string.IsNullOrEmpty(args?.Value as string))
         {
