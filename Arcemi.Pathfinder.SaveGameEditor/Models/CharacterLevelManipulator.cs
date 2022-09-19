@@ -305,6 +305,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             if (progression == null)
             { 
                 progression = Unit.Descriptor.Progression.Items.Add(ProgressionItemModel.Prepare);
+                progression.Key = classData.Progression.BlueprintId;
                 progression.Value.Level = 0;
             }
 
