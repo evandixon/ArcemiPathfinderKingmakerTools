@@ -18,6 +18,9 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
 
         public static void Prepare(IReferences refs, JObject obj)
         {
+            obj.Add(nameof(Value), JToken.FromObject(new
+            {
+            }));
         }
     }
 }
