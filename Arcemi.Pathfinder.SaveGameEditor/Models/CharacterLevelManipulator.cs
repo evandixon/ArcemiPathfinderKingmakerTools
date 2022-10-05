@@ -104,7 +104,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
             // Decrease the level on the class
             var progressionsDecreased = new List<ProgressionItemModel>();
-            foreach (var item in progression.Items)
+            foreach (var item in progression.Items.Where(p => p.Key == classData.Progression.BlueprintId))
             {
                 // Lower the overall character level
                 if (!cls.IsMythic)
