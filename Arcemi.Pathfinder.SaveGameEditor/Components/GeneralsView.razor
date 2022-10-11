@@ -8,7 +8,7 @@ else {
     <ul class="portraits leaders">
         @foreach (var unit in Leaders) {
         <li @onclick="() => SelectLeader(unit)" class="@(Unit == unit ? "toggled" : "")">
-            <img src="file://@unit.PortraitPath" alt="Portrait" />
+            <img src="/api/proxy/@Uri.EscapeDataString(unit.PortraitPath)" alt="Portrait" />
             <span>@unit.DisplayName</span>
         </li>
         }

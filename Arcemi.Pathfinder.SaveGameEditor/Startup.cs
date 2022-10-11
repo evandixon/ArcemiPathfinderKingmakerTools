@@ -20,6 +20,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddControllers();
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddSingleton<MainViewModel>();
@@ -55,6 +56,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor
             app.UseEndpoints(endpoints => {
                 endpoints.MapBlazorHub();
                 endpoints.MapFallbackToPage("/_Host");
+                endpoints.MapControllers();
                 //endpoints.MapRazorPages();
             });
 

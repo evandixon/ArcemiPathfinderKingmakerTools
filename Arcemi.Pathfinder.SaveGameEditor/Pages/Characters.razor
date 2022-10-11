@@ -9,7 +9,7 @@ else {
     <ul class="portraits">
         @foreach (var unit in Model.Characters) {
         <li @onclick="() => SelectCharacter(unit)" class="@(Unit == unit ? "toggled" : "")" title="@(unit.Descriptor.CustomName ?? unit.Descriptor.Name)">
-            <img src="file://@unit.Descriptor.UISettings.PortraitPath" alt="Portrait" />
+            <img src="/api/proxy/@Uri.EscapeDataString(unit.Descriptor.UISettings.PortraitPath)" alt="Portrait" />
             <span>@(unit.Descriptor.CustomName ?? unit.Descriptor.Name)</span>
         </li>
         }
@@ -48,7 +48,7 @@ else {
                                         <ul class="portraits portraits-selection">
                                             @foreach (var portrait in catKV.Value) {
                                             <li @onclick="() => SelectPortrait(portrait)" title="@(portrait.Name ?? Resources.Blueprints.GetNameOrBlueprint(portrait.Key))">
-                                                <img src="file://@portrait.Uri" alt="@(portrait.Name ?? Resources.Blueprints.GetNameOrBlueprint(portrait.Key))" />
+                                                <img src="/api/proxy/@Uri.EscapeDataString(portrait.Uri)" alt="@(portrait.Name ?? Resources.Blueprints.GetNameOrBlueprint(portrait.Key))" />
                                             </li>
                                             }
                                         </ul>
