@@ -4,12 +4,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #endregion
 
+using Arcemi.Pathfinder.Kingmaker.GameData;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker
 {
     public interface IResourceProvider
     {

@@ -1,20 +1,37 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.GameData;
 using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
+using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
 using Arcemi.Pathfinder.Kingmaker.Models;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Arcemi.Pathfinder.Kingmaker
 {
     public class GameResources : IGameResourcesProvider
     {
-        public PathfinderAppData AppData { get; set; }
+        public GameResources()
+        {
+        }
+
+        public void SetConfig(string gameFolder, IPathfinderAppData pathfinderAppData)
+        {
+            this.AppData = pathfinderAppData ?? throw new ArgumentNullException(nameof(pathfinderAppData));
+            this.Blueprints = BlueprintMetadata.Load(gameFolder);
+            if (!string.IsNullOrEmpty(gameFolder))
+            {
+                var references = new References(this);
+                this.BlueprintsRepository = new BlueprintsRepository(Path.Combine(gameFolder, "blueprints.zip"), references, this);
+            }
+        }
+
+        public IPathfinderAppData AppData { get; private set; }
         public BlueprintMetadata Blueprints { get; set; }
-        public List<FeatureFactItemModel> FeatTemplates { get; set; }
-        public List<ClassBlueprintModel> ClassData { get; set; }
-        public List<ProgressionBlueprintModel> Progressions { get; set; }
+        public BlueprintsRepository BlueprintsRepository { get; private set; }
 
         public IReadOnlyDictionary<PortraitCategory, IReadOnlyList<Portrait>> GetAvailablePortraits()
         {
@@ -165,19 +182,172 @@ namespace Arcemi.Pathfinder.Kingmaker
             return Blueprints.TryGetName(blueprint, out var name) ? name : null;
         }
 
-        public FactItemModel GetFeatTemplate(string blueprint)
+        public async Task<FactItemModel> GetFeatTemplate(string blueprintId)
         {
-            return FeatTemplates.FirstOrDefault(t => t.Blueprint == blueprint);
+            if (BlueprintsRepository == null)
+            {
+                return null;
+            }
+
+            var references = new References(this);
+            var blueprint = await BlueprintsRepository.GetBlueprint(blueprintId);
+            if (blueprint?.Data is not BlueprintFeature blueprintFeature)
+            {
+                return null;
+            }
+
+            var factTemplateRaw = new JObject();
+            FeatureFactItemModel.Prepare(references, factTemplateRaw);
+            var factTemplateAccessor = new ModelDataAccessor(factTemplateRaw, references, this);
+            var factTemplate = FactItemModel.Factory(factTemplateAccessor);
+            factTemplate.Blueprint = blueprintId;
+            factTemplate.Context = new FactContextModel(new ModelDataAccessor(new JObject(), references, this))
+            {
+                AssociatedBlueprint = blueprintId
+            };
+
+            foreach (var component in blueprintFeature.Components)
+            {
+                if (factTemplate.Components.ContainsKey(component.Name))
+                {
+                    continue;
+                }
+
+                // Not all components need to be added,
+                // and some components need extra data
+                // Luckily, the game corrects both these problems for us
+                factTemplate.Components.AddNull(component.Name);
+            }
+
+            return factTemplate;
         }
 
-        public ClassBlueprintModel GetClassData(string classId)
+        private async Task<FeatureBlueprintModel> GetFeatModel(string featId)
         {
-            return ClassData.FirstOrDefault(c => c.Id == classId);
+            if (BlueprintsRepository == null)
+            {
+                return null;
+            }
+
+            var blueprint = await BlueprintsRepository.GetBlueprint(featId);
+            if (blueprint?.Data is not BlueprintFeature blueprintFeature)
+            {
+                return null;
+            }
+
+            var featModel = new FeatureBlueprintModel
+            {
+                Id = featId,
+                RemoveFeaturesIdOnApply = blueprintFeature.Components
+                    .Where(f => f is BlueprintComponentRemoveFeatureOnApply).Cast<BlueprintComponentRemoveFeatureOnApply>()
+                    .Select(f => GetBlueprintId(f.m_Feature))
+                    .ToList()
+            };
+
+            if (blueprintFeature is BlueprintFeatureSelection blueprintFeatureSelection)
+            {
+                featModel.IsSelection = true;
+                featModel.SelectionFeatureIdOptions = blueprintFeatureSelection
+                    .m_AllFeatures
+                    .Select(f => GetBlueprintId(f))
+                    .ToList();
+            }
+
+            return featModel;
         }
 
-        public ProgressionBlueprintModel GetProgression(string progressionId)
+        public async Task<ClassBlueprintModel> GetClassData(string classId)
         {
-            return Progressions.FirstOrDefault(p => p.BlueprintId == progressionId);
+            if (BlueprintsRepository == null)
+            {
+                return null;
+            }
+
+            var blueprint = await BlueprintsRepository.GetBlueprint(classId);
+            if (blueprint?.Data is not BlueprintCharacterClass blueprintCharacterClass)
+            {
+                return null;
+            }
+
+            return new ClassBlueprintModel
+            {
+                Id = classId,
+                SpellbookId = GetBlueprintId(blueprintCharacterClass.m_Spellbook),
+                IsMythic = blueprintCharacterClass.IsMythic,
+                Archetypes = (
+                    await Task.WhenAll(blueprintCharacterClass.m_Archetypes
+                        .Select(a => GetArchetypeModel(GetBlueprintId(a.Replace("!bp_", "")))))
+                    )
+                    .Where(a => a != null)
+                    .ToList(),
+                Progression = await GetProgression(GetBlueprintId(blueprintCharacterClass.m_Progression))
+            };
+        }
+
+        public async Task<ProgressionBlueprintModel> GetProgression(string progressionId)
+        {
+            if (BlueprintsRepository == null)
+            {
+                return null;
+            }
+
+            var blueprint = await BlueprintsRepository.GetBlueprint(progressionId);
+            if (blueprint?.Data is not BlueprintProgression blueprintProgression)
+            {
+                return null;
+            }
+
+            return new ProgressionBlueprintModel
+            {
+                BlueprintId = blueprint.AssetId,
+                Levels = (await Task.WhenAll(blueprintProgression.LevelEntries.Select(l => ToModel(l)))).ToList()
+            };
+        }
+
+        private async Task<ClassArchetypeBlueprintModel> GetArchetypeModel(string archetypeId)
+        {
+            if (BlueprintsRepository == null)
+            {
+                return null;
+            }
+
+            var blueprint = await BlueprintsRepository.GetBlueprint(archetypeId);
+            if (blueprint?.Data is not BlueprintArchetype blueprintArchetype)
+            {
+                return null;
+            }
+
+            return new ClassArchetypeBlueprintModel
+            {
+                Id = archetypeId,
+                ReplacementSpellbook = GetBlueprintId(blueprintArchetype.m_ReplaceSpellbook),
+                RemoveSpellbook = blueprintArchetype.RemoveSpellbook,
+                AddFeatures = (await Task.WhenAll(blueprintArchetype.AddFeatures.Select(l => ToModel(l)))).ToList(),
+                RemoveFeatures = (await Task.WhenAll(blueprintArchetype.RemoveFeatures.Select(l => ToModel(l)))).ToList(),
+            };
+        }
+
+        private async Task<ProgressionLevelBlueprintModel> ToModel(BlueprintProgressionLevel progressionLevel)
+        {
+            var level = new ProgressionLevelBlueprintModel
+            {
+                Level = progressionLevel.Level
+            };
+
+            foreach (var blueprintId in progressionLevel.GetFeatureBlueprintIds())
+            {
+                var feature = await GetFeatModel(blueprintId);
+                if (feature != null)
+                {
+                    level.Features.Add(feature);
+                }
+            }
+            return level;
+        }
+
+        private static string GetBlueprintId(string blueprintReferenceId)
+        {
+            return blueprintReferenceId?.Replace("!bp_", "");
         }
     }
 }

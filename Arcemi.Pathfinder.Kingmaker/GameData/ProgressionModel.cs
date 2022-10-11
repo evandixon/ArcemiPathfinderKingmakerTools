@@ -6,6 +6,7 @@
 using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Arcemi.Pathfinder.Kingmaker.GameData
 {
@@ -25,9 +26,9 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
         public string RaceName => A.Res.GetRaceName(Race);
         public int CurrentLevel => Classes?.Where(c => !c.IsMythic).Sum(c => c.Level) ?? 0;
 
-        public ProgressionItemModel GetProgression(string characterClassBlueprintId, IGameResourcesProvider gameResourcesProvider)
+        public async Task<ProgressionItemModel> GetProgression(string characterClassBlueprintId, IGameResourcesProvider gameResourcesProvider)
         {
-            var progressionId = gameResourcesProvider.GetClassData(characterClassBlueprintId)?.Progression?.BlueprintId;
+            var progressionId = (await gameResourcesProvider.GetClassData(characterClassBlueprintId))?.Progression?.BlueprintId;
             if (progressionId == null)
             {
                 return null;

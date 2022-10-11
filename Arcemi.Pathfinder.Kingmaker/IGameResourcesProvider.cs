@@ -2,14 +2,14 @@
 using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
 using Arcemi.Pathfinder.Kingmaker.Models;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Arcemi.Pathfinder.Kingmaker
 {
     public interface IGameResourcesProvider
     {
-        PathfinderAppData AppData { get; }
+        IPathfinderAppData AppData { get; }
         BlueprintMetadata Blueprints { get; }
-        List<ClassBlueprintModel> ClassData { get; }
 
         string GetPortraitId(string blueprint);
         string GetCharacterPotraitIdentifier(string blueprint);
@@ -30,8 +30,8 @@ namespace Arcemi.Pathfinder.Kingmaker
         bool IsMythicClass(string blueprint);
         string GetItemName(string blueprint);
 
-        FactItemModel GetFeatTemplate(string blueprint);
-        ClassBlueprintModel GetClassData(string classId);
-        ProgressionBlueprintModel GetProgression(string blueprint);
+        Task<FactItemModel> GetFeatTemplate(string blueprint);
+        Task<ClassBlueprintModel> GetClassData(string classId);
+        Task<ProgressionBlueprintModel> GetProgression(string blueprint);
     }
 }

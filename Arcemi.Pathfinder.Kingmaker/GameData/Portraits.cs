@@ -11,7 +11,7 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
     {
         private readonly ResourceData _resources;
 
-        public Portraits(IResourceProvider resourceProvider)
+        public Portraits(ResourceProvider resourceProvider)
         {
             _resources = resourceProvider.GetResources();
         }

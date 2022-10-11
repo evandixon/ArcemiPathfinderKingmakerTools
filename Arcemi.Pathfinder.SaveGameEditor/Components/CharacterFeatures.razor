@@ -159,7 +159,7 @@
         if (!IsDuplicateBlueprintId(AddFeatBlueprint))
         {
             var feat = (FeatureFactItemModel)Unit.Facts.Items.Add(FeatureFactItemModel.Prepare);
-            feat.Import(Resources.GetFeatTemplate(AddFeatBlueprint));
+            feat.Import(await Resources.GetFeatTemplate(AddFeatBlueprint));
         }
 
         await modalAddFeat.CloseAsync();

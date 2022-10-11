@@ -44,7 +44,7 @@
         </div>
         <div class="row">
             <div class="col-md-12">
-                <CharacterProgressions Unit="Unit" Progression="@Character.Progression.GetProgression(cls.CharacterClass, Resources)" EnableFeatureRemoval="true" CharacterLevelManipulator="LevelManipulator" />
+                <CharacterProgressions Unit="Unit" Progression="@ProgressionsByClass.GetValueOrDefault(cls.CharacterClass)" EnableFeatureRemoval="true" CharacterLevelManipulator="LevelManipulator" />
             </div>
         </div>
     }
@@ -95,6 +95,7 @@
 
     private CharacterModel Character => Unit?.Descriptor;
     private CharacterLevelManipulator LevelManipulator;
+    private Dictionary<string, ProgressionItemModel> ProgressionsByClass;
 
     private Modal modalAddClass;
     private Modal modalEditAlignmentHistory;
@@ -105,19 +106,30 @@
     private IEnumerable<IBlueprintMetadataEntry> AvailableClassesBase => Resources.Blueprints.GetEntries(BlueprintTypes.CharacterClass)
         .Where(IsValidClass);
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         LevelManipulator = new CharacterLevelManipulator(Unit, Resources);
+        await LoadProgressions();
     }
 
-    private void DowngradeClass(ClassModel cls)
+    private async Task LoadProgressions()
     {
-        LevelManipulator.DowngradeClass(cls);
+        ProgressionsByClass = new();
+        foreach (var cls in Character.Progression.Classes)
+        {
+            ProgressionsByClass[cls.CharacterClass] = await Character.Progression.GetProgression(cls.CharacterClass, Resources);
+        }
     }
 
-    private void RefreshClass(ClassModel cls)
+    private async Task DowngradeClass(ClassModel cls)
     {
-        LevelManipulator.RefreshClassFeatures(cls);
+        await LevelManipulator.DowngradeClass(cls);
+        await LoadProgressions();
+    }
+
+    private async Task RefreshClass(ClassModel cls)
+    {
+        await LevelManipulator.RefreshClassFeatures(cls);
         StateHasChanged();
     }
 
@@ -133,7 +145,8 @@
 
     private async Task AddClassAsync()
     {
-        LevelManipulator.AddClass(AddClassBlueprint);
+        await LevelManipulator.AddClass(AddClassBlueprint);
+        await LoadProgressions();
         await modalAddClass.CloseAsync();
     }
 }

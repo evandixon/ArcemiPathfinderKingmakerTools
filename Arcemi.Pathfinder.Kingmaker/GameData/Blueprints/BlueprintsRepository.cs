@@ -1,6 +1,7 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -27,8 +28,15 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         private readonly ZipArchive zipArchive;
         private readonly SemaphoreSlim zipSemaphore = new(1, 1);
 
+        private readonly ConcurrentDictionary<string, Blueprint> blueprintCache = new();
+
         public async Task<Blueprint> GetBlueprint(string blueprintId)
         {
+            if (blueprintCache.TryGetValue(blueprintId, out var cachedBlueprint))
+            {
+                return cachedBlueprint;
+            }
+
             var filePath = res.Blueprints.Get(blueprintId)?.Path?.Replace(@"\", "/")?.Replace("Blueprints/", "");
             if (string.IsNullOrEmpty(filePath))
             {
@@ -49,27 +57,49 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
                 Stream entryStream = null;
                 try
                 {
+                    bool useHack = false;
                     try
                     {
                         entryStream = entry.Open();
 
+                        using var streamReader = new StreamReader(entryStream);
+                        blueprintContent = await streamReader.ReadToEndAsync();
+                        if (string.IsNullOrEmpty(blueprintContent))
+                        {
+                            useHack = true;
+                        }
                     }
                     catch (InvalidDataException)
                     {
+                        useHack = true;
+                    }
+
+                    if (useHack)
+                    {
+                        entryStream?.Dispose();
+
                         // WOTR ships with a slightly corrupt zip file that can still be read if we try hard enough
                         // Seems to be a result of missing the zip64 header that specifies compressed size, while having a zip32 compressed size indicating to use zip64
 
-                        // ZipArchiveEntry actually contains the very method we need, but it's private
+                        // Some entries have a compressed size that's too small
+                        // .Net uses this as an upper bound for the data it can read, and increasing it lets us read up to the actual end of the file
+                        // but it also uses it as validation to prevent reading a file that extends beyond the end of the file
+                        entry.GetType()
+                            .GetField("_compressedSize", BindingFlags.NonPublic | BindingFlags.Instance)
+                            .SetValue(entry, uint.MaxValue);
+
+                        // ZipArchiveEntry contains a method that lets us bypass errors related to size, but it's private
                         // OpenInReadMode(bool checkOpenable)
                         // https://github.com/dotnet/runtime/blob/2d8f10528f91461344ede350f6a37283c87d581d/src/libraries/System.IO.Compression/src/System/IO/Compression/ZipArchiveEntry.cs#L681
                         entryStream = (Stream)entry
                             .GetType()
                             .GetMethod("OpenInReadMode", BindingFlags.NonPublic | BindingFlags.Instance, new[] { typeof(bool) })
                             .Invoke(entry, new object[] { false /* checkOpenable */ });
-                    }
 
-                    using var streamReader = new StreamReader(entryStream);
-                    blueprintContent = await streamReader.ReadToEndAsync();
+
+                        using var streamReader = new StreamReader(entryStream);
+                        blueprintContent = await streamReader.ReadToEndAsync();
+                    }
                 }
                 finally
                 {
@@ -92,7 +122,9 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
             }
 
             var accessor = new ModelDataAccessor(JObject.Parse(blueprintContent), refs, res);
-            return new Blueprint(accessor);
+            var blueprint = new Blueprint(accessor);
+            blueprintCache[blueprintId] = blueprint;
+            return blueprint;
         }
 
         public void Dispose()

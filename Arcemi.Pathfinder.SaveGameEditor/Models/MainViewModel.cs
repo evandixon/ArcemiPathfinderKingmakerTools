@@ -51,7 +51,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
         public AppUserConfiguration EditConfig { get; private set; }
         public bool HasUnsavedConfigChanges => !Config.Equals(EditConfig);
 
-        private readonly GameResources _resources;
+        private GameResources _resources;
         public IGameResourcesProvider Resources => _resources;
 
         public MainViewModel()
@@ -105,11 +105,6 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         private void LoadConfigResources()
         {
-            _resources.Blueprints = BlueprintMetadata.Load(Config.GameFolder);
-            LoadFeatTemplates();
-            LoadClassData();
-            LoadProgressions();
-
             var wwwRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot");
 #if DEBUG
             if (!Directory.Exists(wwwRoot))
@@ -118,34 +113,8 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 wwwRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
             }
 #endif
-            _resources.AppData = new PathfinderAppData(new WwwRootResourceProvider(wwwRoot, () => Config.AppDataFolder));
-        }
-
-        private void LoadFeatTemplates()
-        {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "_Defs", "FeatTemplates.json");
-            var contents = File.ReadAllText(path);
-            var jObjects = JsonConvert.DeserializeObject<List<JObject>>(contents);
-            var templates = new List<FeatureFactItemModel>();
-            foreach (var item in jObjects)
-            {
-                templates.Add(new FeatureFactItemModel(new ModelDataAccessor(item, new References(Resources), Resources)));
-            }
-            _resources.FeatTemplates = templates;
-        }
-
-        private void LoadClassData()
-        {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "_Defs", "ClassData.json");
-            var contents = File.ReadAllText(path);
-            _resources.ClassData = JsonConvert.DeserializeObject<List<ClassBlueprintModel>>(contents);
-        }
-
-        private void LoadProgressions()
-        {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "_Defs", "Progressions.json");
-            var contents = File.ReadAllText(path);
-            _resources.Progressions = JsonConvert.DeserializeObject<List<ProgressionBlueprintModel>>(contents);
+            var appData = new PathfinderAppData(new WwwRootResourceProvider(wwwRoot, () => Config.AppDataFolder));
+            _resources.SetConfig(Config.GameFolder, appData);
         }
 
 
