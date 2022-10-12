@@ -105,11 +105,6 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
                 {
                     entryStream?.Dispose();
                 }
-
-                if (entry.CompressedLength == uint.MaxValue)
-                {
-                    entry.GetType().GetField("_compressedSize", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(entry, 0);
-                }
             }
             finally
             {
