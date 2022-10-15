@@ -5,9 +5,9 @@ using System.Text;
 
 namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
-    public class BlueprintProgression : BlueprintData
+    public class BlueprintProgression : BlueprintFeature
     {
-        public const string TypeRef = "bec71e89a676a99458c9e2d0804f2a0c, BlueprintProgression";
+        public new const string TypeRef = "bec71e89a676a99458c9e2d0804f2a0c, BlueprintProgression";
 
         public BlueprintProgression(ModelDataAccessor accessor) : base(accessor)
         {

@@ -1,7 +1,4 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
@@ -17,6 +14,18 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         public string AssetId { get => A.Value<string>("AssetId"); set => A.Value(value); }
 
         public BlueprintData Data => A.Object(factory: BlueprintData.Factory);
+    }
 
+    public class Blueprint<TBlueprintData> : Blueprint where TBlueprintData : BlueprintData
+    {
+        public Blueprint(ModelDataAccessor accessor) : base(accessor)
+        {
+        }
+
+        public Blueprint(Blueprint blueprint) : base(blueprint.GetAccessor())
+        {
+        }
+
+        public new TBlueprintData Data => A.Object(factory: a => (TBlueprintData)BlueprintData.Factory(a));
     }
 }

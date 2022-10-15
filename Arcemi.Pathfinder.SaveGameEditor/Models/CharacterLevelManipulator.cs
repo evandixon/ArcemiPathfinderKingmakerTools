@@ -1,7 +1,6 @@
 ﻿using Arcemi.Pathfinder.Kingmaker;
 using Arcemi.Pathfinder.Kingmaker.GameData;
 using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
-using Arcemi.Pathfinder.Kingmaker.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,12 +44,12 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         public async Task DowngradeClass(ClassModel cls)
         {
-            var classData = await Resources.GetClassData(cls.CharacterClass);
+            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(cls.CharacterClass);
             if (!ProgressionBlueprints.TryGetValue(cls.CharacterClass, out var blueprints))
             {
                 blueprints = new List<IBlueprintMetadataEntry>
                 {
-                    Resources.Blueprints.Get(classData.Progression.BlueprintId)
+                    Resources.Blueprints.Get(classData.Data.m_Progression.Id)
                 };
             }
 
@@ -76,7 +75,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             // Remove things selected when leveling up to the level we're removing
             var clsLevelStr = clsLevel.ToString();
             var levelStr = level.ToString();
-            var selection = progression.Selections.FirstOrDefault(s => s.Value.Source.Blueprint == classData.Progression.BlueprintId);
+            var selection = progression.Selections.FirstOrDefault(s => s.Value.Source.Blueprint == classData.Data.m_Progression.Id);
             if (selection != null)
             {
                 RemoveSelection(progression, selection, clsLevel);
@@ -105,7 +104,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
             // Decrease the level on the class
             var progressionsDecreased = new List<ProgressionItemModel>();
-            foreach (var item in progression.Items.Where(p => p.Key == classData.Progression.BlueprintId))
+            foreach (var item in progression.Items.Where(p => p.Key == classData.Data.m_Progression.Id))
             {
                 // Lower the overall character level
                 if (!cls.IsMythic)
@@ -144,10 +143,10 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         public async Task RefreshClassFeatures(ClassModel cls)
         {
-            var classData = await Resources.GetClassData(cls.CharacterClass);
+            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(cls.CharacterClass);
             for (int level = 1; level <= cls.Level; level++)
             {
-                var progression = Unit.Descriptor.Progression.Items.FirstOrDefault(p => p.Key == classData.Progression.BlueprintId);
+                var progression = Unit.Descriptor.Progression.Items.FirstOrDefault(p => p.Key == classData.Data.m_Progression.Id);
                 if (progression == null)
                 {
                     progression = Unit.Descriptor.Progression.Items.Add(ProgressionItemModel.Prepare);
@@ -181,18 +180,18 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         private async Task RemoveClassFeatures(ClassModel cls)
         {
-            var classData = await Resources.GetClassData(cls.CharacterClass);
+            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(cls.CharacterClass);
             if (classData == null)
             {
                 return;
             }
 
             var toRemove = Unit.Facts.Items.Where(fact => fact is FeatureFactItemModel feature
-                && feature.Source == classData.Progression.BlueprintId
+                && feature.Source == classData.Data.m_Progression.Id
                 && feature.SourceLevel == cls.Level).ToList();
             foreach (var fact in toRemove)
             {
-                RemoveFeature(fact, cls.Level, classData.Progression.BlueprintId);
+                RemoveFeature(fact, cls.Level, classData.Data.m_Progression.Id);
             }
         }
 
@@ -286,7 +285,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
         public async Task AddClass(string blueprintId)
         {
             // Class
-            var classData = await Resources.GetClassData(blueprintId);
+            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(blueprintId);
             var characterClass = Unit.Descriptor.Progression.Classes.FirstOrDefault(c => c.CharacterClass == blueprintId);
             if (characterClass != null)
             {
@@ -302,11 +301,11 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             }
 
             // Progression
-            var progression = Unit.Descriptor.Progression.Items.FirstOrDefault(p => p.Key == classData.Progression.BlueprintId);
+            var progression = Unit.Descriptor.Progression.Items.FirstOrDefault(p => p.Key == classData.Data.m_Progression.Id);
             if (progression == null)
             { 
                 progression = Unit.Descriptor.Progression.Items.Add(ProgressionItemModel.Prepare);
-                progression.Key = classData.Progression.BlueprintId;
+                progression.Key = classData.Data.m_Progression.Id;
                 progression.Value.Level = 0;
             }
 
@@ -337,42 +336,43 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 return;
             }
 
-            var classData = await Resources.GetClassData(characterClass.Id);
+            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(classId);
             foreach (var archetype in characterClass.Archetypes ?? Enumerable.Empty<string>())
             {
-                var archetypeData = classData.Archetypes.FirstOrDefault(a => a.Id == archetype);
-                foreach (var featureToRemove in archetypeData.RemoveFeatures
-                    .FirstOrDefault(f => f.Level == level)?.Features ?? Enumerable.Empty<FeatureBlueprintModel>())
+                var archetypeReference = classData.Data.m_Archetypes.FirstOrDefault(a => a.Id == archetype);
+                var archetypeData = archetypeReference.Blueprint;
+                foreach (var featureToRemove in archetypeData.Data.RemoveFeatures
+                    .FirstOrDefault(f => f.Level == level)?.m_Features ?? Enumerable.Empty<BlueprintReference>())
                 {
                     RemoveFeaturesByBlueprint(featureToRemove.Id);
                 }
-                foreach (var featureToAdd in archetypeData.AddFeatures
-                    .FirstOrDefault(f => f.Level == level)?.Features ?? Enumerable.Empty<FeatureBlueprintModel>())
+                foreach (var featureToAdd in archetypeData.Data.AddFeatures
+                    .FirstOrDefault(f => f.Level == level)?.m_Features ?? Enumerable.Empty<BlueprintReference>())
                 {
-                    await AddFeature(level, classData.Progression.BlueprintId, featureToAdd);
+                    await AddFeature(level, classData.Data.m_Progression.Id, featureToAdd);
                 }
             }
         }
 
-        private async Task UpgradeProgression(ProgressionItemModel progression, int targetLevel, ClassBlueprintModel classData)
+        private async Task UpgradeProgression(ProgressionItemModel progression, int targetLevel, Blueprint<BlueprintCharacterClass> classData)
         {
             for (int currentLevel = progression.Value.Level + 1; currentLevel <= targetLevel; currentLevel++)
             {
-                var classLevel = classData.Progression.Levels.FirstOrDefault(l => l.Level == currentLevel);
+                var classLevel = classData.Data.m_Progression.Blueprint.Data.LevelEntries.FirstOrDefault(l => l.Level == currentLevel);
                 if (classLevel == null)
                 {
                     return;
                 }
 
-                foreach (var feature in classLevel.Features)
+                foreach (var feature in classLevel.m_Features)
                 {
                     // Relying on side effects:
                     // 1. Not adding an already-existing feature
                     // 2. Removing any features this one replaces
-                    await AddFeature(currentLevel, classData.Progression.BlueprintId, feature);
+                    await AddFeature(currentLevel, classData.Data.m_Progression.Id, feature);
                 }
 
-                await ApplyArchetypeLevel(classData.Id, currentLevel);
+                await ApplyArchetypeLevel(classData.AssetId, currentLevel);
 
                 progression.Value.Level = currentLevel;
             }
@@ -380,48 +380,52 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         private async Task AddReplacedClassFeatures(string classId, int removedLevel, string removedFeatureId)
         {
-            var classData = await Resources.GetClassData(classId);
-            var removedFeature = classData.Progression
-                .Levels.FirstOrDefault(l => l.Level == removedLevel)
-                ?.Features.FirstOrDefault(f => f.Id == removedFeatureId);
+            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(classId);
+            var removedFeature = classData.Data.m_Progression.Blueprint.Data
+                .LevelEntries
+                .FirstOrDefault(l => l.Level == removedLevel)
+                ?.m_Features.FirstOrDefault(f => f.Id == removedFeatureId);
             if (removedFeature == null)
             {
                 return;
             }
-            foreach (var replacedFeature in removedFeature.RemoveFeaturesIdOnApply ?? Enumerable.Empty<string>())
+            foreach (var component in removedFeature.Blueprint.Data.Components)
             {
-                await AddReplacedClassFeature(classData, replacedFeature);
+                if (component is BlueprintComponentRemoveFeatureOnApply blueprintComponentRemoveFeatureOnApply)
+                {
+                    await AddReplacedClassFeature(classData, blueprintComponentRemoveFeatureOnApply.m_Feature);
+                }
             }
         }
 
-        private async Task AddReplacedClassFeature(ClassBlueprintModel classData, string featureToAdd)
+        private async Task AddReplacedClassFeature(Blueprint<BlueprintCharacterClass> classData, string featureToAdd)
         {
-            foreach (var level in classData.Progression.Levels)
+            foreach (var level in classData.Data.m_Progression.Blueprint.Data.LevelEntries)
             {
-                var feature = level.Features.FirstOrDefault(f => f.Id == featureToAdd);
+                var feature = level.m_Features.FirstOrDefault(f => f.Id == featureToAdd);
                 if (feature == null)
                 {
                     continue;
                 }
 
-                await AddFeature(level.Level, classData.Progression.BlueprintId, feature);
+                await AddFeature(level.Level, classData.Data.m_Progression.Id, feature);
             }
         }
 
         public async Task AddMissingFeatures(ProgressionItemModel progression, int level)
         {
-            var blueprint = await Resources.GetProgression(progression.Key);
+            var blueprint = await Resources.BlueprintsRepository.GetBlueprint<BlueprintProgression>(progression.Key);
             if (blueprint == null)
             {
                 return;
             }
 
-            var newLevel = blueprint.Levels.FirstOrDefault(l => l.Level == level);
+            var newLevel = blueprint.Data.LevelEntries.FirstOrDefault(l => l.Level == level);
             if (newLevel == null)
             {
                 return;
             }
-            foreach (var feature in newLevel.Features)
+            foreach (var feature in newLevel.m_Features)
             {
                 if (FeatureExists(feature.Id, level, progression.Key))
                 {
@@ -487,13 +491,16 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             return GetFeature(featureBlueprintId, level, sourceBlueprintId) != null;
         }
 
-        public async Task AddFeature(int level, string progressionId, FeatureBlueprintModel featureData)
+        public async Task AddFeature(int level, string progressionId, Blueprint<BlueprintFeature> featureData)
         {
-            await AddFeature(level, progressionId, featureData.Id);
+            await AddFeature(level, progressionId, featureData.AssetId);
 
-            foreach (var featureToRemove in featureData.RemoveFeaturesIdOnApply)
+            foreach (var component in featureData.Data.Components)
             {
-                RemoveFeatureByBlueprint(featureToRemove, level, progressionId);
+                if (component is BlueprintComponentRemoveFeatureOnApply featureToRemove)
+                {
+                    RemoveFeatureByBlueprint(featureToRemove.m_Feature.Id, level, progressionId);
+                }
             }
         }
     }

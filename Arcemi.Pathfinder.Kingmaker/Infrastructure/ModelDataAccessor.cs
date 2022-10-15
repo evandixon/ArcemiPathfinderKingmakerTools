@@ -4,9 +4,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #endregion
 using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace Arcemi.Pathfinder.Kingmaker.Infrastructure
@@ -24,6 +26,7 @@ namespace Arcemi.Pathfinder.Kingmaker.Infrastructure
         public IGameResourcesProvider Res { get; }
 
         public JObject UnderlyingObject => _obj;
+        private Dictionary<string, object> cachedValues = new();
 
         public string TypeValue()
         {
@@ -179,6 +182,11 @@ namespace Arcemi.Pathfinder.Kingmaker.Infrastructure
 
         public T Value<T>([CallerMemberName] string name = null, [CallerMemberName] string propertyName = null, T defaultValue = default)
         {
+            if (cachedValues.ContainsKey(propertyName))
+            {
+                return (T)cachedValues[propertyName];
+            }
+
             _changeTracker?.On(name, propertyName);
             var property = _obj.Property(name);
             if (property == null || property.Value is null)
@@ -190,7 +198,11 @@ namespace Arcemi.Pathfinder.Kingmaker.Infrastructure
                 var str = _obj.Property(name).Value.Value<string>();
                 return string.IsNullOrEmpty(str) ? default : (T)(object)TimeSpan.Parse(str);
             }
-            return _obj.Property(name).Value.Value<T>();
+
+            var jtoken = _obj.Property(name).Value;
+            var value = jtoken.ValueWithCustomConverters<T>();
+            cachedValues.Add(propertyName, value);
+            return value;
         }
 
         public void Value(TimeSpan value, [CallerMemberName] string name = null)
@@ -209,8 +221,8 @@ namespace Arcemi.Pathfinder.Kingmaker.Infrastructure
             {
                 _obj.Add(name, value);
             }
+            cachedValues.Remove(name);
             _changeTracker?.Updated(name, value);
         }
-
     }
 }

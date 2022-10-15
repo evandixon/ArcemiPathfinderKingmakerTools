@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #endregion
+using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +29,8 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
 
         public async Task<ProgressionItemModel> GetProgression(string characterClassBlueprintId, IGameResourcesProvider gameResourcesProvider)
         {
-            var progressionId = (await gameResourcesProvider.GetClassData(characterClassBlueprintId))?.Progression?.BlueprintId;
+            var classData = await gameResourcesProvider.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(characterClassBlueprintId);
+            var progressionId = classData?.Data?.m_Progression?.Id;
             if (progressionId == null)
             {
                 return null;

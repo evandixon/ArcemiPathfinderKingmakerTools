@@ -15,6 +15,6 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         {
         }
 
-        public string m_Feature { get => A.Value<string>(); set => A.Value(value); }
+        public BlueprintReference<BlueprintFeature> m_Feature { get => A.Value<BlueprintReference<BlueprintFeature>>(); set => A.Value(value); }
     }
 }

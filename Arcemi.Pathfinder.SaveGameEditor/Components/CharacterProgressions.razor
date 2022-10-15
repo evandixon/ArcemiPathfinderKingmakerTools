@@ -1,5 +1,4 @@
-﻿@using Arcemi.Pathfinder.Kingmaker.Models
-@inject IGameResourcesProvider Resources
+﻿@inject IGameResourcesProvider Resources
 
 @if (ProgressionData != null)
 {
@@ -63,7 +62,7 @@
     [Parameter]
     public CharacterLevelManipulator CharacterLevelManipulator { get; set; }
 
-    private ProgressionBlueprintModel ProgressionData;
+    private Blueprint<BlueprintProgression> ProgressionData;
     private List<ProgressionFeatureRow> ViewModels;
 
 
@@ -78,7 +77,7 @@
         ViewModels = new();
         if (Progression != null)
         {
-            ProgressionData = await Resources.GetProgression(Progression.Key);
+            ProgressionData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintProgression>(Progression.Key);
 
             // Multiple selection values for a single feature means there's multiple features for this level
             // The first feature uses the first one, the second uses the second, etc
@@ -86,7 +85,7 @@
 
             foreach (var progressionLevelData in GetProgressionLevels())
             {
-                foreach (var featureData in progressionLevelData.Features)
+                foreach (var featureData in progressionLevelData.m_Features)
                 {
                     if (!Unit.Facts.Items.Any(f => f.Blueprint == featureData.Id))
                     {
@@ -95,8 +94,16 @@
 
                     string selectionValue = null;
                     int? selectionIndex = null;
-                    if (featureData.IsSelection)
+                    bool isSelection = false;
+                    var selectionFeatures = new List<BlueprintReference>();
+                    if (featureData.Blueprint.Data is BlueprintFeatureSelection blueprintFeatureSelection)
                     {
+                        isSelection = true;
+                        foreach (var featureReference in blueprintFeatureSelection.m_AllFeatures)
+                        {
+                            selectionFeatures.Add(featureReference);
+                        }
+
                         var selection = Unit.Descriptor.Progression.Selections.FirstOrDefault(s => s.Key == featureData.Id && s.Value.ByLevel.ContainsKey(progressionLevelData.Level.ToString()));
                         if (selection != null)
                         {
@@ -114,12 +121,12 @@
 
                     var viewModel = new ProgressionFeatureRow
                     {
-                        ProgressionBlueprintId = ProgressionData.BlueprintId,
+                        ProgressionBlueprintId = ProgressionData.AssetId,
                         FeatureBlueprintId = featureData.Id,
                         Level = progressionLevelData.Level,
                         DisplayName = Resources.Blueprints.GetNameOrBlueprint(featureData.Id),
-                        IsSelection = featureData.IsSelection,
-                        SelectionOptions = featureData.SelectionFeatureIdOptions
+                        IsSelection = isSelection,
+                        SelectionOptions = selectionFeatures
                             .ToDictionary(featureId => featureId, featureId => Resources.Blueprints.GetNameOrBlueprint(featureId)),
                         SelectionValue = selectionValue
                     };
@@ -129,9 +136,9 @@
         }
     }
 
-    private IEnumerable<ProgressionLevelBlueprintModel> GetProgressionLevels()
+    private IEnumerable<BlueprintProgressionLevel> GetProgressionLevels()
     {
-        return ProgressionData.Levels.Where(l => l.Level <= Progression.Value.Level);
+        return ProgressionData.Data.LevelEntries.Where(l => l.Level <= Progression.Value.Level);
     }
 
     private void RemoveFeature(ProgressionFeatureRow viewModel)
@@ -163,7 +170,7 @@
         public int Level { get; set; }
         public string DisplayName { get; set; }
         public bool IsSelection { get; set; }
-        public Dictionary<string, string> SelectionOptions { get; set; }
+        public Dictionary<BlueprintReference, string> SelectionOptions { get; set; }
         public string SelectionValue { get; set; }
         public int SelectionIndex { get; set; }
     }

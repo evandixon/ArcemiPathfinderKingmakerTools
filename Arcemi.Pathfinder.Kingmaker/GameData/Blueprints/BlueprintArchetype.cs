@@ -15,7 +15,7 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         {
         }
 
-        public string m_ReplaceSpellbook { get => A.Value<string>(); set => A.Value(value); }
+        public BlueprintReference<BlueprintSpellbook> m_ReplaceSpellbook { get => A.Value<BlueprintReference<BlueprintSpellbook>>(); set => A.Value(value); }
         public bool RemoveSpellbook { get => A.Value<bool>(); set => A.Value(value); }
         public ListAccessor<BlueprintProgressionLevel> AddFeatures => A.List(factory: BlueprintProgressionLevel.Factory);
         public ListAccessor<BlueprintProgressionLevel> RemoveFeatures => A.List(factory: BlueprintProgressionLevel.Factory);

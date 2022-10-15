@@ -1,6 +1,5 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.GameData;
 using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
-using Arcemi.Pathfinder.Kingmaker.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -10,6 +9,7 @@ namespace Arcemi.Pathfinder.Kingmaker
     {
         IPathfinderAppData AppData { get; }
         BlueprintMetadata Blueprints { get; }
+        BlueprintsRepository BlueprintsRepository { get; }
 
         string GetPortraitId(string blueprint);
         string GetCharacterPotraitIdentifier(string blueprint);
@@ -31,7 +31,5 @@ namespace Arcemi.Pathfinder.Kingmaker
         string GetItemName(string blueprint);
 
         Task<FactItemModel> GetFeatTemplate(string blueprint);
-        Task<ClassBlueprintModel> GetClassData(string classId);
-        Task<ProgressionBlueprintModel> GetProgression(string blueprint);
     }
 }

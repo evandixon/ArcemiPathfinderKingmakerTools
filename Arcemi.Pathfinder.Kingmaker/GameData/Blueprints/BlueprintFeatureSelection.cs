@@ -18,6 +18,6 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         /// <summary>
         /// List of blueprint references that can be selected
         /// </summary>
-        public ListValueAccessor<string> m_AllFeatures { get => A.ListValue<string>(); }
+        public ListValueAccessor<BlueprintReference<BlueprintFeature>> m_AllFeatures { get => A.ListValue<BlueprintReference<BlueprintFeature>>(); }
     }
 }

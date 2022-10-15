@@ -17,9 +17,9 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 
         public ListAccessor<BlueprintComponent> Components => A.List(factory: BlueprintComponent.Factory);
 
-        public string m_Spellbook { get => A.Value<string>(); set => A.Value(value); }
+        public BlueprintReference<BlueprintSpellbook> m_Spellbook { get => A.Value<BlueprintReference<BlueprintSpellbook>>(); set => A.Value(value); }
         public bool IsMythic { get => A.Value<bool>(); set => A.Value(value); }
-        public string m_Progression { get => A.Value<string>(); set => A.Value(value); }
-        public ListValueAccessor<string> m_Archetypes { get => A.ListValue<string>(); }
+        public BlueprintReference<BlueprintProgression> m_Progression { get => A.Value<BlueprintReference<BlueprintProgression>>(); set => A.Value(value); }
+        public ListValueAccessor<BlueprintReference<BlueprintArchetype>> m_Archetypes { get => A.ListValue<BlueprintReference<BlueprintArchetype>>(); }
     }
 }

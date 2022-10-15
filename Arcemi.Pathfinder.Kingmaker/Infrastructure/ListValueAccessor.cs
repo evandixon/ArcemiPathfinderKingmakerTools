@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #endregion
 using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
@@ -28,7 +29,8 @@ namespace Arcemi.Pathfinder.Kingmaker.Infrastructure
             if (_items.Count > 0) _items.Clear();
             foreach (var item in _array)
             {
-                _items.Add(item.Value<T>());
+                var value = item.ValueWithCustomConverters<T>();
+                _items.Add(value);
             }
         }
 

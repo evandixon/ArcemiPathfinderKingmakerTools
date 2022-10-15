@@ -1,17 +1,12 @@
 ﻿using Arcemi.Pathfinder.Kingmaker;
+using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
 using ElectronNET.API;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Arcemi.Pathfinder.Kingmaker.GameData;
-using Arcemi.Pathfinder.Kingmaker.Infrastructure;
-using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
-using Arcemi.Pathfinder.Kingmaker.Models;
-using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
 
 namespace Arcemi.Pathfinder.SaveGameEditor.Models
 {

@@ -1,25 +1,31 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
-    public class BlueprintsRepository : IDisposable
+    public interface IBlueprintsRepository
+    {
+        Task<Blueprint> GetBlueprint(BlueprintReference blueprintId);
+        Task<Blueprint<TBlueprintData>> GetBlueprint<TBlueprintData>(string blueprintId) where TBlueprintData : BlueprintData;
+    }
+
+    public class BlueprintsRepository : IDisposable, IBlueprintsRepository
     {
         public BlueprintsRepository(string filename, IReferences refs, IGameResourcesProvider res)
         {
             this.refs = refs ?? throw new ArgumentNullException(nameof(refs));
             this.res = res ?? throw new ArgumentNullException(nameof(res));
-            
+
             this.zipArchive = new ZipArchive(File.OpenRead(filename), ZipArchiveMode.Read, leaveOpen: false);
         }
 
@@ -30,8 +36,13 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 
         private readonly ConcurrentDictionary<string, Blueprint> blueprintCache = new();
 
-        public async Task<Blueprint> GetBlueprint(string blueprintId)
+        public async Task<Blueprint> GetBlueprint(BlueprintReference blueprintId)
         {
+            if (string.IsNullOrEmpty(blueprintId))
+            {
+                return null;
+            }
+
             if (blueprintCache.TryGetValue(blueprintId, out var cachedBlueprint))
             {
                 return cachedBlueprint;
@@ -97,7 +108,56 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
             var accessor = new ModelDataAccessor(JObject.Parse(blueprintContent), refs, res);
             var blueprint = new Blueprint(accessor);
             blueprintCache[blueprintId] = blueprint;
+
+            await RecursivelyLoadBlueprints(blueprint);
+
             return blueprint;
+        }
+
+        public async Task<Blueprint<TBlueprintData>> GetBlueprint<TBlueprintData>(string blueprintId) where TBlueprintData : BlueprintData
+        {
+            var blueprint = await GetBlueprint(blueprintId);
+            return new Blueprint<TBlueprintData>(blueprint);
+        }
+
+        private async Task RecursivelyLoadBlueprints(object obj)
+        {
+            if (obj is BlueprintReference blueprintReference)
+            {
+                if (blueprintReference != null && !blueprintReference.IsBlueprintLoaded)
+                {
+                    await blueprintReference.LoadBlueprint(this);
+                    return;
+                }
+            }
+
+            foreach (var property in obj.GetType().GetProperties())
+            {
+                if (property.PropertyType == typeof(BlueprintReference))
+                {
+                    var value = (BlueprintReference)property.GetValue(obj);
+                    if (value != null && !value.IsBlueprintLoaded)
+                    {
+                        await value.LoadBlueprint(this);
+                    }
+                }
+                else if (property.PropertyType.IsAssignableTo(typeof(IModelContainer)))
+                {
+                    var container = (IModelContainer)property.GetValue(obj);
+                    if (container != null)
+                    {
+                        foreach (var value in container)
+                        {
+                            await RecursivelyLoadBlueprints(value);
+                        }
+                    }
+                }
+                else if (property.PropertyType.IsAssignableTo(typeof(IModelAdmin)))
+                {
+                    var value = property.GetValue(obj);
+                    await RecursivelyLoadBlueprints(value);
+                }
+            }
         }
 
         public void Dispose()

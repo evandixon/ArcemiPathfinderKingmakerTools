@@ -13,13 +13,12 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         }
 
         public int Level { get => A.Value<int>(); set => A.Value(value); }
-        public ListValueAccessor<string> m_Features { get => A.ListValue<string>(); }
+
+        public ListValueAccessor<BlueprintReference<BlueprintFeature>> m_Features { get => A.ListValue<BlueprintReference<BlueprintFeature>>(); }
 
         public static BlueprintProgressionLevel Factory(ModelDataAccessor accessor)
         {
             return new BlueprintProgressionLevel(accessor);
         }
-
-        public List<string> GetFeatureBlueprintIds() => m_Features.Select(f => f.Replace("!bp_", "")).ToList();
     }
 }
