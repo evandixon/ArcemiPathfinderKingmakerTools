@@ -3,61 +3,53 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #endregion
-using Arcemi.Pathfinder.Kingmaker.Infrastructure;
+using Arcemi.Pathfinder.Kingmaker.GameData;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.Infrastructure
 {
-    public class ListD2Accessor<T> : IList, IReadOnlyList<IReadOnlyList<T>>, INotifyCollectionChanged, IModelContainer
+    public class ListAccessor<T> : IList, IReadOnlyList<T>, INotifyCollectionChanged, IModelContainer
         where T : Model
     {
         private readonly JArray _array;
         private readonly IReferences _refs;
         private readonly Func<ModelDataAccessor, T> _factory;
         private readonly IGameResourcesProvider _res;
-        private readonly List<List<T>> _items;
+        private readonly List<T> _items;
 
         public event NotifyCollectionChangedEventHandler CollectionChanged;
 
-        public ListD2Accessor(JArray array, IReferences refs, IGameResourcesProvider res, Func<ModelDataAccessor, T> factory)
+        public ListAccessor(JArray array, IReferences refs, IGameResourcesProvider res, Func<ModelDataAccessor, T> factory)
         {
             _array = array;
             _refs = refs;
             _factory = factory;
             _res = res;
-            _items = new List<List<T>>();
+            _items = new List<T>();
             ((IModelContainer)this).Refresh();
         }
 
         void IModelContainer.Refresh()
         {
             if (_items.Count > 0) _items.Clear();
-            foreach (var i1 in _array)
+            for (var i = 0; i < _array.Count; i++)
             {
-                if (i1 == null || i1.Type == JTokenType.Null)
+                var t = _array[i];
+                if (t == null || t.Type == JTokenType.Null)
                 {
                     _items.Add(null);
                     continue;
                 }
-                var jarr = (JArray)i1;
-                var arr = new List<T>();
-                _items.Add(arr);
-
-                foreach (var i2 in jarr)
-                {
-                    var obj = _refs.GetReferred((JObject)i2);
-                    var accessor = new ModelDataAccessor(obj, _refs, _res);
-                    var instance = _factory.Invoke(accessor);
-                    arr.Add(instance);
-                }
+                var instance = _refs.GetOrCreateObject((JObject)t, _factory);
+                _items.Add(instance);
             }
         }
 
-        private T InitAndInsert(int index1 = -1, int index2 = -1, Action<IReferences, JObject> init = null)
+        private T InitAndInsert(int index = -1, Action<IReferences, JObject> init = null)
         {
             JObject obj;
             if (typeof(T).IsSubclassOf(typeof(RefModel)))
@@ -71,30 +63,15 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
             init?.Invoke(_refs, obj);
             var accessor = new ModelDataAccessor(obj, _refs, _res);
             var item = _factory.Invoke(accessor);
-            JArray jarr;
-            List<T> arr;
-            if (index1 < 0)
+            if (index < 0)
             {
-                jarr = new JArray();
-                _array.Add(jarr);
-                arr = new List<T>();
-                _items.Add(arr);
+                _array.Add(obj);
+                _items.Add(item);
             }
             else
             {
-                jarr = (JArray)_array[index1];
-                arr = _items[index1];
-            }
-
-            if (index2 < 0)
-            {
-                jarr.Add(obj);
-                arr.Add(item);
-            }
-            else
-            {
-                jarr.Insert(index2, obj);
-                arr.Insert(index2, item);
+                _array.Insert(index, obj);
+                _items.Insert(index, item);
             }
             CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item));
             return item;
@@ -104,55 +81,28 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
         {
         }
 
-        public T Insert(int index1, int index2, Action<IReferences, JObject> init = null)
+        public T Insert(int index, Action<IReferences, JObject> init = null)
         {
-            return InitAndInsert(index1, index2, init);
-        }
-
-        public T Add(int index, Action<IReferences, JObject> init = null)
-        {
-            return InitAndInsert(index, -1, init);
+            return InitAndInsert(index, init);
         }
 
         public T Add(Action<IReferences, JObject> init = null)
         {
-            return InitAndInsert(-1, -1, init);
-        }
-
-        public void EnsureRank1Count(int count)
-        {
-            while (_items.Count < count)
-            {
-                _items.Add(new List<T>());
-            }
-            while (_array.Count < count)
-            {
-                _array.Add(new JArray());
-            }
-        }
-
-        public void AddRef<TRef>(int index, TRef item)
-            where TRef : RefModel, T
-        {
-            _items[index].Add(item);
-            ((JArray)_array[index]).Add(_refs.CreateReference(_array, item.Id));
+            return InitAndInsert(-1, init);
         }
 
         public void AddRef<TRef>(TRef item)
             where TRef : RefModel, T
         {
-            var jarr = new JArray { _refs.CreateReference(_array, item.Id) };
-            var arr = new List<T> { item };
-
-            _items.Add(arr);
-            _array.Add(jarr);
+            _items.Add(item);
+            _array.Add(_refs.CreateReference(_array, item.Id));
         }
 
-        public void SetRef<TRef>(int index1, int index2, TRef item)
+        public void SetRef<TRef>(int index, TRef item)
             where TRef : RefModel, T
         {
-            _items[index1][index2] = item;
-            ((JArray)_array[index1])[index2] = _refs.CreateReference(_array, item.Id);
+            _items[index] = item;
+            _array[index] = _refs.CreateReference(_array, item.Id);
         }
 
         public int FirstEmptyIndex()
@@ -165,10 +115,31 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
             return -1;
         }
 
-        public IReadOnlyList<T> this[int index] => _items[index];
-        public T this[int index1, int index2] => _items[index1][index2];
+        public T this[int index]
+        {
+            get => _items[index];
+            set
+            {
+                var item = _array[index];
+                if (value == null)
+                {
+                    _items[index] = null;
+                    _array[index] = null;
+                }
+                else
+                {
+                    if (!(value is RefModel refModel)) throw new InvalidOperationException("Value can not be referenced");
+                    _items[index] = value;
+                    _array[index] = _refs.CreateReference(_array, refModel.Id);
+                }
+                if (item != null)
+                {
+                    _refs.BubbleRemoval(item);
+                }
+            }
+        }
 
-        object IList.this[int index] { get => _items[index]; set => throw new NotImplementedException(); }
+        object IList.this[int index] { get => _items[index]; set => this[index] = (T)value; }
 
         public int Count => _items.Count;
 
@@ -208,7 +179,7 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
             ((IList)_items).CopyTo(array, index);
         }
 
-        public IEnumerator<IReadOnlyList<T>> GetEnumerator()
+        public IEnumerator<T> GetEnumerator()
         {
             return _items.GetEnumerator();
         }
@@ -228,24 +199,16 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
             Remove((T)value);
         }
 
-        public bool TryGetIndexOf(T item, out int index1, out int index2)
+        public int IndexOf(T item)
         {
-            for (index1 = 0; index1 < _items.Count; index1++)
-            {
-                var list = _items[index1];
-                if (list == null) continue;
-                index2 = list.IndexOf(item);
-                if (index2 >= 0) return true;
-            }
-            index1 = -1;
-            index2 = -1;
-            return false;
+            return _items.IndexOf(item);
         }
 
         public bool Remove(T item)
         {
-            if (!TryGetIndexOf(item, out var index1, out var index2)) return false;
-            RemoveAt(index1, index2);
+            var idx = _items.IndexOf(item);
+            if (idx < 0) return false;
+            RemoveAt(idx);
             return true;
         }
 
@@ -258,22 +221,6 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
 
             _array.RemoveAt(index);
             _items.RemoveAt(index);
-
-            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item));
-        }
-
-        public void RemoveAt(int index1, int index2)
-        {
-            var arr = _items[index1];
-            var jarr = (JArray)_array[index1];
-
-            var item = arr[index2];
-            var token = jarr[index2];
-
-            _refs.BubbleRemoval(token);
-
-            jarr.RemoveAt(index2);
-            arr.RemoveAt(index2);
 
             CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item));
         }

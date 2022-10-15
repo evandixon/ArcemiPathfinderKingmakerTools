@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 

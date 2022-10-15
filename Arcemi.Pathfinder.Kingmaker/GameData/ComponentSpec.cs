@@ -1,4 +1,6 @@
-﻿namespace Arcemi.Pathfinder.Kingmaker.GameData
+﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
+
+namespace Arcemi.Pathfinder.Kingmaker.GameData
 {
     public class ComponentSpec
     {

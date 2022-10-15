@@ -3,14 +3,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #endregion
-using Arcemi.Pathfinder.Kingmaker.Infrastructure;
+using Arcemi.Pathfinder.Kingmaker.GameData;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.Infrastructure
 {
     public class DictionaryAccessor<T> : IReadOnlyDictionary<string, T>, IModelContainer
         where T : Model
@@ -49,7 +49,6 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
         public T this[string key]
         {
             get => _dict[key];
-            set => _dict[key] = value;
         }
 
         public ICollection<string> Keys => _dict.Keys;
