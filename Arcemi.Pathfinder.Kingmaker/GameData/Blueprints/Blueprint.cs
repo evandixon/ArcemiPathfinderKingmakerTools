@@ -24,8 +24,9 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 
         public Blueprint(Blueprint blueprint) : base(blueprint.GetAccessor())
         {
+
         }
 
-        public new TBlueprintData Data => A.Object(factory: a => (TBlueprintData)BlueprintData.Factory(a));
+        public new TBlueprintData Data => (TBlueprintData)base.Data;
     }
 }

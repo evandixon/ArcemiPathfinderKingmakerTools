@@ -33,7 +33,16 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         
         public async Task LoadBlueprint(IBlueprintsRepository blueprints)
         {
+            if (string.IsNullOrEmpty(this.Id))
+            {
+                return;
+            }
+
             Blueprint = await blueprints.GetBlueprint(this.Id);
+            if (_blueprint == null)
+            {
+                throw new Exception($"Failed to load blueprint {this.Id}");
+            }
             IsBlueprintLoaded = true;
         }
 
@@ -44,11 +53,21 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 
         public static implicit operator string(BlueprintReference blueprintIdReference)
         {
+            if (blueprintIdReference == null)
+            {
+                return null;
+            }
+
             return blueprintIdReference.Id;
         }
 
         public static implicit operator BlueprintReference(string blueprintId)
         {
+            if (string.IsNullOrEmpty(blueprintId))
+            {
+                return null;
+            }
+
             return new BlueprintReference(blueprintId);
         }
 

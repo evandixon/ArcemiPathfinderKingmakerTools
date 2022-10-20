@@ -133,7 +133,7 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 
             foreach (var property in obj.GetType().GetProperties())
             {
-                if (property.PropertyType == typeof(BlueprintReference))
+                if (property.PropertyType.IsAssignableTo(typeof(BlueprintReference)))
                 {
                     var value = (BlueprintReference)property.GetValue(obj);
                     if (value != null && !value.IsBlueprintLoaded)

@@ -22,7 +22,7 @@ namespace Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions
                 }
                 else
                 {
-                    var value = (object)new BlueprintReference(id);
+                    var value = !string.IsNullOrEmpty(id) ? (object)new BlueprintReference(id) : null;
                     return (T)value;
                 }
             }
