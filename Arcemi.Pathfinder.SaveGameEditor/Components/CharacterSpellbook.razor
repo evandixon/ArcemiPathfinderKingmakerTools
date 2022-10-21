@@ -104,7 +104,7 @@ else {
                 <Accordion HeaderText="Spontaneous Slots">
                     <p class="alert alert-info">This is the available number of slots until you rest.
                         You can set this to above your maximum slots, but it will reset after a rest.</p>
-                    <SpellIndexAccessorView Accessors="spellbook.SpontaneousSlotsAccessors" />
+                    <SpellIndexAccessorView Accessors="@spellbook.SpontaneousSlotsAccessors" SpellbookBlueprintId="@spellbook.Blueprint" SpellbookLevel="@spellbook.BaseLevelInternal" />
                 </Accordion>
             }
             <Accordion HeaderText="Known spells">
@@ -113,7 +113,7 @@ else {
                     It will appear as a cantrip in game with no cast limit.<br />
                     Some spells listed will not work for different reasons, feel free to experiment.
                 </p>
-                <CharacterLearnedSpellsView LearnedSpells="spellbook.KnownSpells" />
+                <CharacterLearnedSpellsView LearnedSpells="spellbook.KnownSpells" SpellbookBlueprintId="@spellbook.Blueprint" SpellbookLevel="@spellbook.BaseLevelInternal" />
             </Accordion>
             @if (spellbook.SpecialLists?.Count > 0) {
                 <Accordion HeaderText="Special spells">
@@ -124,7 +124,7 @@ else {
                             </p>
                         </div>
                     </div>
-                    <CharacterLearnedSpellsView LearnedSpells="spellbook.SpecialSpells" />
+                    <CharacterLearnedSpellsView LearnedSpells="spellbook.SpecialSpells" SpellbookBlueprintId="@spellbook.Blueprint" SpellbookLevel="@spellbook.BaseLevelInternal" />
                 </Accordion>
             }
             <Accordion HeaderText="Custom spells">

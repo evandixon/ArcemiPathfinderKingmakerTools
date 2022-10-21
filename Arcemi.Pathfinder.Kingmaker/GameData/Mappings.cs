@@ -74,9 +74,18 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
 
         public static Func<ModelDataAccessor, T> GetFactory<T>()
         {
-            return Factories.TryGetValue(typeof(T), out var factory)
-                ? (Func<ModelDataAccessor, T>)factory
-                : throw new ArgumentException("No factory registered for type " + typeof(T).FullName);
+            if (Factories.TryGetValue(typeof(T), out var factory))
+            {
+                return (Func<ModelDataAccessor, T>)factory;
+            }
+
+            var simpleConstructor = typeof(T).GetConstructor(new[] { typeof(ModelDataAccessor) });
+            if (simpleConstructor != null)
+            {
+                return new Func<ModelDataAccessor, T>(accessor => (T)simpleConstructor.Invoke(new object[] { accessor }));
+            }
+
+            throw new ArgumentException("No factory registered for type " + typeof(T).FullName);
         }
     }
 }

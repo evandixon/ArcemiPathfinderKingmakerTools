@@ -15,6 +15,6 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         {
         }
 
-        public ListAccessor<BlueprintSpellsTableLevel> Components => A.List(factory: BlueprintSpellsTableLevel.Factory);
+        public ListAccessor<BlueprintSpellsTableLevel> Levels => A.List(factory: BlueprintSpellsTableLevel.Factory);
     }
 }

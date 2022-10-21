@@ -15,6 +15,11 @@ namespace Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions
             if (targetType.IsAssignableTo(typeof(BlueprintReference)))
             {
                 var id = jToken.Value<string>();
+                if (string.IsNullOrEmpty(id))
+                {
+                    return default;
+                }
+
                 if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(BlueprintReference<>))
                 {
                     var value = targetType.GetConstructor(new Type[] { typeof(string) }).Invoke(new object[] { id });

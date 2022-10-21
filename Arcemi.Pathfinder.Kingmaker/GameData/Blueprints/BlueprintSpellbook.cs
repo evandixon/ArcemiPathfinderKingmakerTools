@@ -15,8 +15,8 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         public BlueprintReference<BlueprintSpellsTable> m_SpellsPerDay => A.Value<BlueprintReference<BlueprintSpellsTable>>();
         public BlueprintReference<BlueprintSpellsTable> m_SpellsKnown => A.Value<BlueprintReference<BlueprintSpellsTable>>();
         public BlueprintReference<BlueprintSpellsTable> m_SpellSlots => A.Value<BlueprintReference<BlueprintSpellsTable>>();
-        public BlueprintReference m_SpellList => A.Value<BlueprintReference>();
-        public BlueprintReference m_MythicSpellList => A.Value<BlueprintReference>();
+        public BlueprintReference<BlueprintSpellList> m_SpellList => A.Value<BlueprintReference<BlueprintSpellList>>();
+        public BlueprintReference<BlueprintSpellList> m_MythicSpellList => A.Value<BlueprintReference<BlueprintSpellList>>();
         public BlueprintReference<BlueprintCharacterClass> m_CharacterClass => A.Value<BlueprintReference<BlueprintCharacterClass>>();
         public string CastingAttribute => A.Value<string>();
         public bool Spontaneous => A.Value<bool>();

@@ -14,6 +14,10 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         {
             var type = accessor.TypeValue();
 
+            if (string.Equals(type, BlueprintAbility.TypeRef, StringComparison.Ordinal))
+            {
+                return new BlueprintAbility(accessor);
+            }
             if (string.Equals(type, BlueprintArchetype.TypeRef, StringComparison.Ordinal))
             {
                 return new BlueprintArchetype(accessor);
@@ -32,9 +36,13 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
             }
             if (string.Equals(type, BlueprintSpellbook.TypeRef, StringComparison.Ordinal))
             {
-                return new BlueprintSpellsTable(accessor);
+                return new BlueprintSpellbook(accessor);
             }
-            if (string.Equals(type, BlueprintSpellbook.TypeRef, StringComparison.Ordinal))
+            if (string.Equals(type, BlueprintSpellList.TypeRef, StringComparison.Ordinal))
+            {
+                return new BlueprintSpellList(accessor);
+            }
+            if (string.Equals(type, BlueprintSpellsTable.TypeRef, StringComparison.Ordinal))
             {
                 return new BlueprintSpellsTable(accessor);
             }

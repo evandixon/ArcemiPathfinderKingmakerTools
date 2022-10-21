@@ -1,13 +1,51 @@
-﻿<div class="row">
+﻿@inject IGameResourcesProvider resources
+
+<div class="row">
     @foreach (var acc in Accessors) {
-    <div class="col-xs-3 col-sm-2 col-md-2 col-lg-2">
-        <label class="form-label form-label-centered">Lvl @acc.Level</label>
-        <input class="form-control" type="number" @bind="acc.Value" />
-    </div>
+        <div class="col-xs-3 col-sm-2 col-md-2 col-lg-2">
+            @{ 
+                var maxSlots = maxSlotsByLevel != null && acc.Level > 0 && maxSlotsByLevel.Count.Count > acc.Level 
+                    ? (int?)maxSlotsByLevel.Count[acc.Level] 
+                    : null; 
+            }
+            @if (maxSlots.HasValue)
+            {
+                <label class="form-label form-label-centered">Lvl @acc.Level (Max @maxSlots.Value)</label>
+            }
+            else
+            {
+                <label class="form-label form-label-centered">Lvl @acc.Level</label>
+            }
+            <input class="form-control" type="number" @bind="acc.Value" />
+        </div>
     }
 </div>
 
 @code{
     [Parameter]
     public IEnumerable<SpellIndexAccessor> Accessors { get; set; }
+
+    [Parameter]
+    public int SpellbookLevel { get; set; }
+
+    [Parameter]
+    public string SpellbookBlueprintId { get; set; }
+
+    private BlueprintSpellsTableLevel maxSlotsByLevel;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        maxSlotsByLevel = null;
+        if (SpellbookLevel > 0)
+        {
+            var spellbookBlueprint = await resources.BlueprintsRepository.GetBlueprint<BlueprintSpellbook>(SpellbookBlueprintId);
+            if (spellbookBlueprint != null)
+            {
+                var list = spellbookBlueprint.Data.m_SpellSlots ?? spellbookBlueprint.Data.m_SpellsPerDay;
+                var slotsList = list.Blueprint.Data.Levels;
+                maxSlotsByLevel = slotsList[SpellbookLevel];
+                // To-do: factor in bonus spells and ability modifier
+            }
+        }
+    }
 }
