@@ -1,0 +1,153 @@
+﻿@using Arcemi.Pathfinder.SaveGameEditor.Components.Modals
+@inject CharacterViewModel Model
+@inject IGameResourcesProvider Resources
+
+<div class="row">
+    <h2 class="col-md-12">Classes</h2>
+    <button class="btn btn-sm btn-info btn-h4" @onclick="() => OpenAddClassAsync()">
+        <span class="oi oi-plus"></span>
+    </button>
+</div>
+
+<div class="form-list">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Basic Feat Progression</h2>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <CharacterProgressions Unit="Unit" Progression="@Character.Progression.GetBasicFeatsProgression()" EnableFeatureRemoval="false" CharacterLevelManipulator="LevelManipulator" />
+        </div>
+    </div>
+
+    @foreach (var cls in Character.Progression.Classes) {
+        <div class="row">
+            <div class="col-md-1" style="padding-top:5px">
+                <button class="btn btn-sm btn-warning" disabled="@(!LevelManipulator.CanDowngrade(cls))" @onclick="() => DowngradeClass(cls)">
+                    <span class="oi oi-arrow-thick-bottom"></span>
+                </button>
+                <button class="btn btn-sm btn-secondary" @onclick="() => RefreshClass(cls)">
+                    <span class="oi oi-wrench"></span>
+                </button>
+            </div>
+            <div class="col-md-11">
+                @if (!string.IsNullOrEmpty(cls.ArchetypeName))
+                {
+                    <h2>@cls.TypeName (@cls.ArchetypeName) Level @cls.Level</h2>
+                }
+                else
+                {
+                    <h2>@cls.TypeName Level @cls.Level</h2>
+                }
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-list">
+                    <CharacterProgressions Unit="Unit" Progression="@ProgressionsByClass.GetValueOrDefault(cls.CharacterClass)" EnableFeatureRemoval="true" CharacterLevelManipulator="LevelManipulator" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<Modal @ref="modalAddClass">
+    <Title>Add class</Title>
+    <Body>
+        <b>Warning: </b> <span>This feature is experimental. Be sure to keep a backup of your save.</span>
+        <TabControl StartIndex="0">
+            <Tab Name="Search">
+                <Content>
+                    <Search TItem="IBlueprintMetadataEntry" Items="AvailableClassesBase" ItemSearchable="b => b.Name.DisplayName" Context="item" OnSelect="a => AddClassBlueprint = a.Item.Id">
+                        <ResultItemTemplate>
+                            @item.Name.DisplayName
+                        </ResultItemTemplate>
+                    </Search>
+                </Content>
+            </Tab>
+            <Tab Name="All">
+                <Content>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label class="form-label">Class</label>
+                            <select class="form-control" @bind="AddClassBlueprint">
+                                <option value="">Select class...</option>
+                                @foreach (var blueprint in AvailableClassesBase) {
+                                    <option value="@blueprint.Id">@blueprint.DisplayName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </Content>
+            </Tab>
+        </TabControl>
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-primary" data-dismiss="modal" disabled="@AddClassIsInvalid" @onclick="AddClassAsync">
+            Confirm
+        </button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="() => modalAddClass.CloseAsync()">Cancel</button>
+    </Footer>
+</Modal>
+
+@code {
+    [Parameter]
+    public UnitEntityModel Unit { get; set; }
+
+    private CharacterModel Character => Unit?.Descriptor;
+    private CharacterLevelManipulator LevelManipulator;
+    private Dictionary<string, ProgressionItemModel> ProgressionsByClass;
+
+    private Modal modalAddClass;
+
+    private string AddClassBlueprint;
+    private bool AddClassIsInvalid => string.IsNullOrEmpty(AddClassBlueprint);
+
+    private IEnumerable<IBlueprintMetadataEntry> AvailableClassesBase => Resources.Blueprints.GetEntries(BlueprintTypes.CharacterClass)
+        .Where(IsValidClass);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        LevelManipulator = new CharacterLevelManipulator(Unit, Resources);
+        await LoadProgressions();
+    }
+
+    private async Task LoadProgressions()
+    {
+        ProgressionsByClass = new();
+        foreach (var cls in Character.Progression.Classes)
+        {
+            ProgressionsByClass[cls.CharacterClass] = await Character.Progression.GetProgression(cls.CharacterClass, Resources);
+        }
+    }
+
+    private async Task DowngradeClass(ClassModel cls)
+    {
+        await LevelManipulator.DowngradeClass(cls);
+        await LoadProgressions();
+    }
+
+    private async Task RefreshClass(ClassModel cls)
+    {
+        await LevelManipulator.RefreshClassFeatures(cls);
+        StateHasChanged();
+    }
+
+    private async Task OpenAddClassAsync()
+    {
+        await modalAddClass.OpenAsync();
+    }
+
+    private bool IsValidClass(IBlueprintMetadataEntry x)
+    {
+        return true;
+    }
+
+    private async Task AddClassAsync()
+    {
+        await LevelManipulator.AddClass(AddClassBlueprint);
+        await LoadProgressions();
+        await modalAddClass.CloseAsync();
+    }
+}

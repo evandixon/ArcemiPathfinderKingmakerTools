@@ -4,9 +4,19 @@
     for (var i = 0; i < LearnedSpells.Count; i++){
         var thisLevel = i;
         var arr = LearnedSpells[thisLevel];
+        var maxKnown = SpellsPerDayBySpellLevel != null && SpellsPerDayBySpellLevel.Count.Count > i
+            ? (int?)SpellsPerDayBySpellLevel.Count[i]
+            : null;
         <div class="row">
             <div class="col-md-6">
-                <h4>Level @thisLevel</h4>
+                @if (maxKnown.HasValue)
+                {
+                    <h4>Level @thisLevel (Max @maxKnown.Value)</h4>
+                }
+                else 
+                {
+                    <h4>Level @thisLevel</h4>
+                }
             </div>
             <div class="col-md-1">
                 <button class="btn btn-sm btn-info btn-h4" @onclick="() => OpenAddSpellAsync(thisLevel)">
@@ -46,7 +56,7 @@
         <TabControl StartIndex="0">
             <Tab Name="Search">
                 <Content>
-                    <Search TItem="IBlueprintMetadataEntry" Items="AvailableSpellsBase" ItemSearchable="b => b.Name.DisplayName" Context="item" OnSelect="a => AddSpellBlueprint = a.Item.Id">
+                    <Search TItem="IBlueprintMetadataEntry" Items="GetAvailableSpells()" ItemSearchable="b => b.Name.DisplayName" Context="item" OnSelect="a => AddSpellBlueprint = a.Item.Id">
                         <ResultItemTemplate>
                             @item.Name.DisplayName
                         </ResultItemTemplate>
@@ -60,7 +70,7 @@
                             <label class="form-label">Spell</label>
                             <select class="form-control" @bind="AddSpellBlueprint">
                                 <option value="">Select spell...</option>
-                                @foreach (var blueprint in AvailableSpells) {
+                                @foreach (var blueprint in GetAvailableSpells()) {
                                     <option value="@blueprint.Id">@blueprint.DisplayName</option>
                                 }
                             </select>
@@ -69,6 +79,7 @@
                 </Content>
             </Tab>
         </TabControl>
+        <input id="checkboxShowAll" type="checkbox" checked="@AddSpellShowAll" @onchange="@(e => AddSpellShowAll = (bool)e.Value)" /> <label for="checkboxShowAll">Show All</label>
     </Body>
     <Footer>
         <button type="button" class="btn btn-primary" data-dismiss="modal" disabled="@AddSpellIsInvalid" @onclick="AddSpellAsync">
@@ -82,12 +93,54 @@
     [Parameter]
     public ListD2Accessor<LearnedSpellModel> LearnedSpells { get; set; }
 
+    [Parameter]
+    public int SpellbookLevel { get; set; }
+
+    [Parameter]
+    public string SpellbookBlueprintId { get; set; }
+
     private bool OrderByName = true;
+    private BlueprintSpellsTableLevel SpellsPerDayBySpellLevel;
+    private Blueprint<BlueprintSpellbook> SpellbookBlueprint;
 
-    private IEnumerable<IBlueprintMetadataEntry> AvailableSpellsBase => Resources.Blueprints.GetEntries(BlueprintTypes.Ability)
-        .Where(IsValidSpell);
+    protected override async Task OnParametersSetAsync()
+    {
+        SpellsPerDayBySpellLevel = null;
+        if (SpellbookLevel > 0)
+        {
+            SpellbookBlueprint = await Resources.BlueprintsRepository.GetBlueprint<BlueprintSpellbook>(SpellbookBlueprintId);
+            if (SpellbookBlueprint?.Data?.m_SpellsKnown?.Blueprint != null)
+            {
+                var spellsPerDayBySpellbookLevel = SpellbookBlueprint.Data.m_SpellsKnown.Blueprint.Data.Levels;
+                if (spellsPerDayBySpellbookLevel.Count > SpellbookLevel)
+                {
+                    SpellsPerDayBySpellLevel = spellsPerDayBySpellbookLevel[SpellbookLevel];
+                }
+            }
+        }
+    }
 
-    private IEnumerable<IBlueprintMetadataEntry> AvailableSpells => OrderByName ? AvailableSpellsBase.OrderBy(x => x.Name.DisplayName) : AvailableSpellsBase;
+    private IEnumerable<IBlueprintMetadataEntry> GetAvailableSpells()
+    {
+        IEnumerable<IBlueprintMetadataEntry> spells = Resources.Blueprints.GetEntries(BlueprintTypes.Ability).Where(IsValidSpell);
+
+        if (!AddSpellShowAll && SpellbookBlueprint != null)
+        {
+            var allowedSpells = SpellbookBlueprint.Data.m_SpellList.Blueprint.Data.SpellsByLevel.FirstOrDefault(l => l.SpellLevel == AddSpellLevel);
+            if (allowedSpells != null)
+            {
+                var allowedSpellIds = allowedSpells.m_Spells.Select(m => m.Id).ToHashSet();
+                spells = spells.Where(s => allowedSpellIds.Contains(s.Id));
+            }
+        }
+
+        if (OrderByName)
+        {
+            spells = spells.OrderBy(s => s.Name.DisplayName);
+        }
+
+        return spells;
+    }
 
     private bool IsValidSpell(IBlueprintMetadataEntry x)
     {
@@ -97,6 +150,7 @@
     private Modal modalAddSpell;
     private string AddSpellBlueprint;
     private int AddSpellLevel;
+    private bool AddSpellShowAll;
     private bool AddSpellIsInvalid => string.IsNullOrEmpty(AddSpellBlueprint);
 
     private void SelectAddSpellBlueprint(IBlueprintMetadataEntry blueprint)

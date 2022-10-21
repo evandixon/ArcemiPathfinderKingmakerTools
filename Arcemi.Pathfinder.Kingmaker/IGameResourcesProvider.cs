@@ -1,11 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Arcemi.Pathfinder.Kingmaker
 {
     public interface IGameResourcesProvider
     {
-        PathfinderAppData AppData { get; }
+        IPathfinderAppData AppData { get; }
         BlueprintMetadata Blueprints { get; }
+        BlueprintsRepository BlueprintsRepository { get; }
 
         string GetPortraitId(string blueprint);
         string GetCharacterPotraitIdentifier(string blueprint);
@@ -26,6 +30,6 @@ namespace Arcemi.Pathfinder.Kingmaker
         bool IsMythicClass(string blueprint);
         string GetItemName(string blueprint);
 
-        FactItemModel GetFeatTemplate(string blueprint);
+        Task<FactItemModel> GetFeatTemplate(string blueprint);
     }
 }

@@ -1,4 +1,5 @@
-﻿@inject CharacterViewModel Model
+﻿@using Arcemi.Pathfinder.Kingmaker.GameData.Enums
+@inject CharacterViewModel Model
 @inject IGameResourcesProvider Resources
 
 <div class="row">
@@ -88,7 +89,7 @@
 <Modal @ref="modalAddFeat">
     <Title>Add feat</Title>
     <Body>
-        <b>Warning: </b> <span>This feature is experimental. Be sure to keep a backup of your save. If you encounter problems, consider using feat codes instead.</span>
+        <b>Warning: </b> <span>This feature is experimental. Be sure to keep a backup of your save. If you encounter problems, consider using feat codes instead. Some class features won't take effect if added here, and you will instead need to add a level of the appropriate class.</span>
         <TabControl StartIndex="0">
             <Tab Name="Search">
                 <Content>
@@ -159,7 +160,7 @@
         if (!IsDuplicateBlueprintId(AddFeatBlueprint))
         {
             var feat = (FeatureFactItemModel)Unit.Facts.Items.Add(FeatureFactItemModel.Prepare);
-            feat.Import(Resources.GetFeatTemplate(AddFeatBlueprint));
+            feat.Import(await Resources.GetFeatTemplate(AddFeatBlueprint));
         }
 
         await modalAddFeat.CloseAsync();
@@ -203,10 +204,10 @@
         var paramToken = obj[nameof(FeatureFactItemModel.Param)];
         if (paramToken == null) return true;
         if (paramToken.TryGetValue(nameof(FeatureParamModel.WeaponCategory), out string param)) {
-            return feats.Any(f => f.Param?.WeaponCategory.Eq(param) ?? false);
+            return feats.Any(f => f.Param?[nameof(FeatureParameterType.WeaponCategory)].Eq(param) ?? false);
         }
         if (paramToken.TryGetValue(nameof(FeatureParamModel.SpellSchool), out param)) {
-            return feats.Any(f => f.Param?.SpellSchool.Eq(param) ?? false);
+            return feats.Any(f => f.Param?[nameof(FeatureParameterType.SpellSchool)].Eq(param) ?? false);
         }
         return true;
     }

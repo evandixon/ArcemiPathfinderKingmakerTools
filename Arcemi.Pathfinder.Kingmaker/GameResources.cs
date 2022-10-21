@@ -1,14 +1,36 @@
-﻿using System;
+﻿using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
+using Arcemi.Pathfinder.Kingmaker.Infrastructure;
+using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Arcemi.Pathfinder.Kingmaker
 {
     public class GameResources : IGameResourcesProvider
     {
-        public PathfinderAppData AppData { get; set; }
+        public GameResources()
+        {
+        }
+
+        public void SetConfig(string gameFolder, IPathfinderAppData pathfinderAppData)
+        {
+            this.AppData = pathfinderAppData ?? throw new ArgumentNullException(nameof(pathfinderAppData));
+            this.Blueprints = BlueprintMetadata.Load(gameFolder);
+            if (!string.IsNullOrEmpty(gameFolder))
+            {
+                var references = new References(this);
+                this.BlueprintsRepository = new BlueprintsRepository(Path.Combine(gameFolder, "blueprints.zip"), references, this);
+            }
+        }
+
+        public IPathfinderAppData AppData { get; private set; }
         public BlueprintMetadata Blueprints { get; set; }
-        public List<FeatureFactItemModel> FeatTemplates { get; set; }
+        public BlueprintsRepository BlueprintsRepository { get; private set; }
 
         public IReadOnlyDictionary<PortraitCategory, IReadOnlyList<Portrait>> GetAvailablePortraits()
         {
@@ -30,7 +52,8 @@ namespace Arcemi.Pathfinder.Kingmaker
 
         public string GetLeaderPortraitUri(string blueprint)
         {
-            if (TryGetLeader(blueprint, out var leader)) {
+            if (TryGetLeader(blueprint, out var leader))
+            {
                 return GetPortraitsUri(leader.Portrait);
             }
             return GetPortraitsUri(blueprint);
@@ -48,14 +71,17 @@ namespace Arcemi.Pathfinder.Kingmaker
 
         public string GetPortraitId(string blueprint)
         {
-            if (string.IsNullOrEmpty(blueprint)) {
+            if (string.IsNullOrEmpty(blueprint))
+            {
                 return null;
             }
 
-            if (Mappings.Leaders.TryGetValue(blueprint, out var leader)) {
+            if (Mappings.Leaders.TryGetValue(blueprint, out var leader))
+            {
                 return leader.Portrait.OrIfEmpty("_c_" + leader.Name);
             }
-            if (Mappings.Characters.TryGetValue(blueprint, out var character)) {
+            if (Mappings.Characters.TryGetValue(blueprint, out var character))
+            {
                 return "_c_" + character.Name;
             }
             return null;
@@ -63,8 +89,10 @@ namespace Arcemi.Pathfinder.Kingmaker
 
         public string GetCharacterPotraitIdentifier(string blueprint)
         {
-            if (Mappings.Characters.TryGetValue(blueprint, out var character)) {
-                if (!string.IsNullOrEmpty(character.Portrait)) {
+            if (Mappings.Characters.TryGetValue(blueprint, out var character))
+            {
+                if (!string.IsNullOrEmpty(character.Portrait))
+                {
                     return character.Portrait;
                 }
             }
@@ -96,17 +124,21 @@ namespace Arcemi.Pathfinder.Kingmaker
 
         public string GetLeaderName(string blueprint)
         {
-            if (string.IsNullOrEmpty(blueprint)) {
+            if (string.IsNullOrEmpty(blueprint))
+            {
                 return "";
             }
 
-            if (Mappings.Leaders.TryGetValue(blueprint, out var leader)) {
+            if (Mappings.Leaders.TryGetValue(blueprint, out var leader))
+            {
                 return leader.Name;
             }
-            if (Mappings.Characters.TryGetValue(blueprint, out var character)) {
+            if (Mappings.Characters.TryGetValue(blueprint, out var character))
+            {
                 return character.Name;
             }
-            if (Blueprints.TryGetName(blueprint, out var name)) {
+            if (Blueprints.TryGetName(blueprint, out var name))
+            {
                 return name;
             }
             return "";
@@ -141,7 +173,7 @@ namespace Arcemi.Pathfinder.Kingmaker
 
         public bool IsMythicClass(string blueprint)
         {
-            return Mappings.Classes.TryGetValue(blueprint, out var cls) && (cls.Flags?.Contains("M") ?? false);
+            return Mappings.Classes.TryGetValue(blueprint, out var cls) && (cls.Flags?.Contains('M') ?? false);
         }
 
         public string GetItemName(string blueprint)
@@ -149,9 +181,39 @@ namespace Arcemi.Pathfinder.Kingmaker
             return Blueprints.TryGetName(blueprint, out var name) ? name : null;
         }
 
-        public FactItemModel GetFeatTemplate(string blueprint)
+        public async Task<FactItemModel> GetFeatTemplate(string blueprintId)
         {
-            return FeatTemplates.FirstOrDefault(t => t.Blueprint == blueprint);
+            if (BlueprintsRepository == null)
+            {
+                return null;
+            }
+
+            var references = new References(this);
+            var blueprintFeature = await BlueprintsRepository.GetBlueprint<BlueprintFeature>(blueprintId);
+            var factTemplateRaw = new JObject();
+            FeatureFactItemModel.Prepare(references, factTemplateRaw);
+            var factTemplateAccessor = new ModelDataAccessor(factTemplateRaw, references, this);
+            var factTemplate = FactItemModel.Factory(factTemplateAccessor);
+            factTemplate.Blueprint = blueprintId;
+            factTemplate.Context = new FactContextModel(new ModelDataAccessor(new JObject(), references, this))
+            {
+                AssociatedBlueprint = blueprintId
+            };
+
+            foreach (var component in blueprintFeature.Data.Components)
+            {
+                if (factTemplate.Components.ContainsKey(component.Name))
+                {
+                    continue;
+                }
+
+                // Not all components need to be added,
+                // and some components need extra data
+                // Luckily, the game corrects both these problems for us
+                factTemplate.Components.AddNull(component.Name);
+            }
+
+            return factTemplate;
         }
     }
 }

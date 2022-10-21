@@ -1,0 +1,84 @@
+﻿@inject IGameResourcesProvider Resources
+
+@if (ViewModels != null)
+{
+    <div class="form-list">
+        <div class="row">
+            <div class="col-md-1">
+                <label class="form-label">Level</label>
+            </div>
+            <div class="col-md-10">
+                <label class="form-label">Feature Name</label>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label"></label>
+            </div>
+        </div>
+        @foreach (var viewModel in ViewModels)
+        {
+            <div class="row">
+                <div class="col-md-1">
+                    <label class="form-label">@viewModel.Level</label>
+                </div>
+                <div class="col-md-10">
+                    @if (viewModel.IsSelection)
+                    {
+                        <span>@(viewModel.DisplayName):</span>
+                        <FeatureSelection ViewModel="viewModel" />
+                    }
+                    else
+                    {
+                        @viewModel.DisplayName
+                    }
+                </div>
+                <div class="col-md-1">
+                    <button class="btn btn-sm btn-danger" title="Remove feature" @onclick="() => RemoveFeature(viewModel)">
+                        <span class="oi oi-trash"></span>
+                    </button>
+                </div>
+            </div>
+        }
+    </div> 
+}
+
+@code {
+    [Parameter]
+    public UnitEntityModel Unit{ get; set; }
+
+    [Parameter]
+    public ProgressionItemModel Progression { get; set; }
+
+    [Parameter]
+    public bool EnableFeatureRemoval { get; set; }
+
+    [Parameter]
+    public CharacterLevelManipulator CharacterLevelManipulator { get; set; }
+
+    private List<ProgressionFeatureModel> ViewModels;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        base.OnParametersSet();
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        ViewModels = Progression != null
+            ? await ProgressionFeatureModel.FromProgression(Progression, Unit, Resources, CharacterLevelManipulator)
+            : null;
+    }
+
+    private void RemoveFeature(ProgressionFeatureModel viewModel)
+    {
+        if (CharacterLevelManipulator.RemoveFeatureByBlueprint(viewModel.FeatureBlueprintId, viewModel.Level, viewModel.ProgressionBlueprintId))
+        {
+            ViewModels.Remove(viewModel);
+        }
+    }
+
+    private async Task OnFeatureSelectionChange(ProgressionFeatureModel viewModel, ChangeEventArgs args)
+    {
+        await viewModel.ChangeSelectionValue(args?.Value as string);
+    }
+}

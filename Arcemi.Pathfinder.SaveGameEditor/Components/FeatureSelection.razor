@@ -1,0 +1,46 @@
+﻿<select value="@ViewModel.SelectionValue" @onchange="args => OnFeatureSelectionChange(args)">
+    <option value="">(None)</option>
+    @foreach (var option in ViewModel.SelectionOptions.OrderBy(o => o.Value))
+    {
+        <option value="@option.Key">@option.Value</option>
+    }
+</select>
+
+@if (SubViewModel != null)
+{
+    <FeatureSelection ViewModel="SubViewModel" />
+}
+else if (ViewModel.IsParameterized)
+{
+    <select value="@ViewModel.SelectionValueParameterValue" @onchange="args => OnFeatureParameterChange(args)">
+        <option value="">(None)</option>
+        @foreach (var option in ViewModel.SelectionValueParameterOptions)
+        {
+            <option value="@option.Key">@option.Value</option>
+        }
+    </select>
+}
+
+@code {
+    [Parameter]
+    public ProgressionFeatureModel ViewModel { get; set; }
+
+    private ProgressionFeatureModel SubViewModel;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        SubViewModel = await ViewModel.GetSubSelection();
+    }
+
+    private async Task OnFeatureSelectionChange(ChangeEventArgs args)
+    {
+        await ViewModel.ChangeSelectionValue(args?.Value as string);
+        SubViewModel = await ViewModel.GetSubSelection();
+    }
+
+    private void OnFeatureParameterChange(ChangeEventArgs args)
+    {
+        ViewModel.ChangeParameterValue(args?.Value as string);
+    }
+}

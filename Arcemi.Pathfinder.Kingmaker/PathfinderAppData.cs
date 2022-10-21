@@ -4,18 +4,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #endregion
 
+
+using Arcemi.Pathfinder.Kingmaker.GameData;
+
 namespace Arcemi.Pathfinder.Kingmaker
 {
-    public class PathfinderAppData
+    public interface IPathfinderAppData
     {
-        private readonly IResourceProvider resourceProvider;
+        string Directory { get; }
+        Portraits Portraits { get; }
+        string PortraitsDirectory { get; }
+        string SavedGamesDirectory { get; }
+    }
+
+    public class PathfinderAppData : IPathfinderAppData
+    {
+        private readonly ResourceProvider resourceProvider;
 
         public string Directory => resourceProvider.Directory;
         public string PortraitsDirectory => resourceProvider.PortraitsDirectory;
         public string SavedGamesDirectory => resourceProvider.SavedGamesDirectory;
         public Portraits Portraits { get; }
 
-        public PathfinderAppData(IResourceProvider resourceProvider)
+        public PathfinderAppData(ResourceProvider resourceProvider)
         {
             this.resourceProvider = resourceProvider;
             Portraits = new Portraits(resourceProvider);

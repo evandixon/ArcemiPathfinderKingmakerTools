@@ -1,4 +1,4 @@
-﻿using Arcemi.Pathfinder.Kingmaker;
+﻿using Arcemi.Pathfinder.Kingmaker.GameData;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;

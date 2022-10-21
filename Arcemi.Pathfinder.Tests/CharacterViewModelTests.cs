@@ -1,4 +1,5 @@
 using Arcemi.Pathfinder.Kingmaker;
+using Arcemi.Pathfinder.Kingmaker.GameData.Blueprints;
 using Arcemi.Pathfinder.SaveGameEditor.Models;
 using Arcemi.Pathfinder.Tests.Mocks;
 using System.Linq;
