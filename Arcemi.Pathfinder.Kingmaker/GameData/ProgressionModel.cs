@@ -66,7 +66,14 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
             var index = selection.Value.ByLevel[levelStr].ToList().IndexOf(oldValue);
             if (index != -1)
             {
-                selection.Value.ByLevel[levelStr][index] = newValue;
+                if (!string.IsNullOrEmpty(newValue))
+                {
+                    selection.Value.ByLevel[levelStr][index] = newValue;
+                }
+                else
+                {
+                    selection.Value.ByLevel[levelStr].RemoveAt(index);
+                }
             }
             else
             {

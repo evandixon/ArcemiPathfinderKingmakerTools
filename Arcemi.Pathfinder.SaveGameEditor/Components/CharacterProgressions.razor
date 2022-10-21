@@ -1,6 +1,6 @@
 ﻿@inject IGameResourcesProvider Resources
 
-@if (ProgressionData != null)
+@if (ViewModels != null)
 {
     <div class="form-list">
         <div class="row">
@@ -21,17 +21,10 @@
                     <label class="form-label">@viewModel.Level</label>
                 </div>
                 <div class="col-md-10">
-                    <label class="form-label"></label>
                     @if (viewModel.IsSelection)
                     {
                         <span>@(viewModel.DisplayName):</span>
-                        <select value="@viewModel.SelectionValue" @onchange="args => OnFeatureSelectionChange(viewModel, args)">
-                            <option value="">(None)</option>
-                            @foreach (var option in viewModel.SelectionOptions.OrderBy(o => o.Value))
-                            {
-                                <option value="@option.Key">@option.Value</option>
-                            }
-                        </select>
+                        <FeatureSelection ViewModel="viewModel" />
                     }
                     else
                     {
@@ -48,7 +41,6 @@
     </div> 
 }
 
-
 @code {
     [Parameter]
     public UnitEntityModel Unit{ get; set; }
@@ -62,9 +54,7 @@
     [Parameter]
     public CharacterLevelManipulator CharacterLevelManipulator { get; set; }
 
-    private Blueprint<BlueprintProgression> ProgressionData;
-    private List<ProgressionFeatureRow> ViewModels;
-
+    private List<ProgressionFeatureModel> ViewModels;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -74,74 +64,12 @@
 
     private async Task Refresh()
     {
-        ViewModels = new();
-        if (Progression != null)
-        {
-            ProgressionData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintProgression>(Progression.Key);
-
-            // Multiple selection values for a single feature means there's multiple features for this level
-            // The first feature uses the first one, the second uses the second, etc
-            var selectionIndexes = new Dictionary<(string selectionId, int level), int>();
-
-            foreach (var progressionLevelData in GetProgressionLevels())
-            {
-                foreach (var featureData in progressionLevelData.m_Features)
-                {
-                    if (!Unit.Facts.Items.Any(f => f.Blueprint == featureData.Id))
-                    {
-                        continue;
-                    }
-
-                    string selectionValue = null;
-                    int? selectionIndex = null;
-                    bool isSelection = false;
-                    var selectionFeatures = new List<BlueprintReference>();
-                    if (featureData.Blueprint.Data is BlueprintFeatureSelection blueprintFeatureSelection)
-                    {
-                        isSelection = true;
-                        foreach (var featureReference in blueprintFeatureSelection.m_AllFeatures)
-                        {
-                            selectionFeatures.Add(featureReference);
-                        }
-
-                        var selection = Unit.Descriptor.Progression.Selections.FirstOrDefault(s => s.Key == featureData.Id && s.Value.ByLevel.ContainsKey(progressionLevelData.Level.ToString()));
-                        if (selection != null)
-                        {
-                            var selectionKey = (selectionId: featureData.Id, level: progressionLevelData.Level);
-                            if (!selectionIndexes.ContainsKey(selectionKey))
-                            {
-                                selectionIndexes.Add(selectionKey, 0);
-                            }
-
-                            selectionIndex = selectionIndexes[selectionKey]++;
-                            var selectionList = selection.Value.ByLevel[progressionLevelData.Level.ToString()];
-                            selectionValue = selectionList.Count > selectionIndex ? selectionList[selectionIndex.Value] : null;
-                        }
-                    }
-
-                    var viewModel = new ProgressionFeatureRow
-                    {
-                        ProgressionBlueprintId = ProgressionData.AssetId,
-                        FeatureBlueprintId = featureData.Id,
-                        Level = progressionLevelData.Level,
-                        DisplayName = Resources.Blueprints.GetNameOrBlueprint(featureData.Id),
-                        IsSelection = isSelection,
-                        SelectionOptions = selectionFeatures
-                            .ToDictionary(featureId => featureId, featureId => Resources.Blueprints.GetNameOrBlueprint(featureId)),
-                        SelectionValue = selectionValue
-                    };
-                    ViewModels.Add(viewModel);
-                }
-            }
-        }
+        ViewModels = Progression != null
+            ? await ProgressionFeatureModel.FromProgression(Progression, Unit, Resources, CharacterLevelManipulator)
+            : null;
     }
 
-    private IEnumerable<BlueprintProgressionLevel> GetProgressionLevels()
-    {
-        return ProgressionData.Data.LevelEntries.Where(l => l.Level <= Progression.Value.Level);
-    }
-
-    private void RemoveFeature(ProgressionFeatureRow viewModel)
+    private void RemoveFeature(ProgressionFeatureModel viewModel)
     {
         if (CharacterLevelManipulator.RemoveFeatureByBlueprint(viewModel.FeatureBlueprintId, viewModel.Level, viewModel.ProgressionBlueprintId))
         {
@@ -149,29 +77,8 @@
         }
     }
 
-    private async Task OnFeatureSelectionChange(ProgressionFeatureRow viewModel, ChangeEventArgs args)
+    private async Task OnFeatureSelectionChange(ProgressionFeatureModel viewModel, ChangeEventArgs args)
     {
-        Unit.Descriptor.Progression.ReplaceSelection(viewModel.FeatureBlueprintId, viewModel.ProgressionBlueprintId, viewModel.Level, viewModel.SelectionValue, args.Value as string);
-        if (!string.IsNullOrEmpty(viewModel.SelectionValue))
-        {
-            CharacterLevelManipulator.RemoveFeatureByBlueprint(viewModel.SelectionValue, viewModel.Level, viewModel.ProgressionBlueprintId);
-        }
-        if (!string.IsNullOrEmpty(args?.Value as string))
-        {
-            await CharacterLevelManipulator.AddFeature(viewModel.Level, viewModel.ProgressionBlueprintId, (string)args.Value);
-        }
-        viewModel.SelectionValue = (string)args.Value;
-    }
-
-    private class ProgressionFeatureRow
-    {
-        public string ProgressionBlueprintId { get; set; }
-        public string FeatureBlueprintId { get; set; }
-        public int Level { get; set; }
-        public string DisplayName { get; set; }
-        public bool IsSelection { get; set; }
-        public Dictionary<BlueprintReference, string> SelectionOptions { get; set; }
-        public string SelectionValue { get; set; }
-        public int SelectionIndex { get; set; }
+        await viewModel.ChangeSelectionValue(args?.Value as string);
     }
 }

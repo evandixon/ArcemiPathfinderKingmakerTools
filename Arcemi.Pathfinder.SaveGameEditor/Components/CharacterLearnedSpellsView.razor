@@ -109,7 +109,7 @@
         if (SpellbookLevel > 0)
         {
             SpellbookBlueprint = await Resources.BlueprintsRepository.GetBlueprint<BlueprintSpellbook>(SpellbookBlueprintId);
-            if (SpellbookBlueprint != null)
+            if (SpellbookBlueprint?.Data?.m_SpellsKnown?.Blueprint != null)
             {
                 var spellsPerDayBySpellbookLevel = SpellbookBlueprint.Data.m_SpellsKnown.Blueprint.Data.Levels;
                 if (spellsPerDayBySpellbookLevel.Count > SpellbookLevel)
