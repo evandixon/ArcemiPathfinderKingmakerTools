@@ -17,5 +17,26 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         }
 
         public FeatureParameterType ParameterType => Enum.Parse<FeatureParameterType>(A.Value<string>());
+
+        public ListValueAccessor<BlueprintReference> BlueprintParameterVariants => A.ListValue<BlueprintReference>();
+        public ListValueAccessor<BlueprintReference> CustomParameterVariants => A.ListValue<BlueprintReference>();
+
+        public List<string> GetParameterValues()
+        {
+            switch (ParameterType)
+            {
+                case FeatureParameterType.SpellSchool:
+                    return Enum.GetValues<SpellSchool>().Select(s => s.ToString("f")).ToList();
+                case FeatureParameterType.WeaponCategory:
+                    return Enum.GetValues<WeaponCategory>().Select(s => s.ToString("f")).ToList();
+                case FeatureParameterType.Custom:
+                case FeatureParameterType.SpellSpecialization:
+                case FeatureParameterType.LearnSpell:
+                case FeatureParameterType.Skill:
+                case FeatureParameterType.FeatureSelection:
+                default:
+                    return new List<string>();
+            }
+        }
     }
 }

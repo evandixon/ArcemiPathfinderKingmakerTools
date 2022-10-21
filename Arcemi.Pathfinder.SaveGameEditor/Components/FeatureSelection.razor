@@ -10,6 +10,16 @@
 {
     <FeatureSelection ViewModel="SubViewModel" />
 }
+else if (ViewModel.IsParameterized)
+{
+    <select value="@ViewModel.SelectionValueParameterValue" @onchange="args => OnFeatureParameterChange(args)">
+        <option value="">(None)</option>
+        @foreach (var option in ViewModel.SelectionValueParameterOptions)
+        {
+            <option value="@option.Key">@option.Value</option>
+        }
+    </select>
+}
 
 @code {
     [Parameter]
@@ -27,5 +37,10 @@
     {
         await ViewModel.ChangeSelectionValue(args?.Value as string);
         SubViewModel = await ViewModel.GetSubSelection();
+    }
+
+    private void OnFeatureParameterChange(ChangeEventArgs args)
+    {
+        ViewModel.ChangeParameterValue(args?.Value as string);
     }
 }

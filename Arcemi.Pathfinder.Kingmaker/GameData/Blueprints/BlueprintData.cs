@@ -34,6 +34,10 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
             {
                 return new BlueprintFeatureSelection(accessor);
             }
+            if (string.Equals(type, BlueprintParametrizedFeature.TypeRef, StringComparison.Ordinal))
+            {
+                return new BlueprintParametrizedFeature(accessor);
+            }
             if (string.Equals(type, BlueprintSpellbook.TypeRef, StringComparison.Ordinal))
             {
                 return new BlueprintSpellbook(accessor);

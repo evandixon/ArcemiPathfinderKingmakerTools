@@ -57,22 +57,44 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                         }
                     }
 
-                    var viewModel = new ProgressionFeatureModel(unit, characterLevelManipulator, resources)
-                    {
-                        ProgressionBlueprintId = progressionData.AssetId,
-                        FeatureBlueprintId = featureData.Id,
-                        Level = progressionLevelData.Level,
-                        DisplayName = resources.Blueprints.GetNameOrBlueprint(featureData.Id),
-                        IsSelection = isSelection,
-                        SelectionOptions = selectionFeatures
-                            .ToDictionary(featureId => featureId, featureId => resources.Blueprints.GetNameOrBlueprint(featureId)),
-                        SelectionValue = selectionValue
-                    };
-                    viewModels.Add(viewModel);
+                    viewModels.Add(await Create(unit, characterLevelManipulator, resources,
+                        progressionBlueprintId: progressionData.AssetId,
+                        featureBlueprintId: featureData.Id,
+                        level: progressionLevelData.Level,
+                        isSelection: isSelection,
+                        selectionOptions: selectionFeatures,
+                        selectionValue: selectionValue));
                 }
             }
 
             return viewModels;
+        }
+
+        public static async Task<ProgressionFeatureModel> Create(UnitEntityModel unitEntityModel,
+            CharacterLevelManipulator characterLevelManipulator,
+            IGameResourcesProvider gameResourcesProvider,
+            string progressionBlueprintId,
+            string featureBlueprintId,
+            int level,
+            bool isSelection,
+            List<BlueprintReference> selectionOptions,
+            string selectionValue)
+        {
+            var viewModel = new ProgressionFeatureModel(unitEntityModel, characterLevelManipulator, gameResourcesProvider)
+            {
+                ProgressionBlueprintId = progressionBlueprintId,
+                FeatureBlueprintId = featureBlueprintId,
+                Level = level,
+                DisplayName = gameResourcesProvider.Blueprints.GetNameOrBlueprint(featureBlueprintId),
+                IsSelection = isSelection,
+                SelectionOptions = selectionOptions
+                    .ToDictionary(featureId => featureId, featureId => gameResourcesProvider.Blueprints.GetNameOrBlueprint(featureId)),
+                SelectionValue = selectionValue
+            };
+
+            await viewModel.LoadParameterData();
+
+            return viewModel;
         }
 
         public ProgressionFeatureModel(UnitEntityModel unitEntityModel, CharacterLevelManipulator characterLevelManipulator, IGameResourcesProvider gameResourcesProvider)
@@ -93,6 +115,10 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
         public bool IsSelection { get; set; }
         public Dictionary<BlueprintReference, string> SelectionOptions { get; set; }
         public string SelectionValue { get; set; }
+        public bool IsParameterized { get; set; }
+        public string ParameterType { get; set; }
+        public string SelectionValueParameterValue { get; set; }
+        public Dictionary<string, string> SelectionValueParameterOptions { get; set; }
 
         /// <summary>
         /// If <see cref="SelectionValue"/> is a feature that has another selection, the view model representing that selection feature, or null if it is not
@@ -129,17 +155,13 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 subSelectionValue = selectionList.Count > selectionIndex ? selectionList[selectionIndex] : null;
             }
 
-            return new ProgressionFeatureModel(unitEntityModel, characterLevelManipulator, gameResourcesProvider)
-            {
-                ProgressionBlueprintId = ProgressionBlueprintId,
-                FeatureBlueprintId = SelectionValue,
-                Level = Level,
-                DisplayName = gameResourcesProvider.Blueprints.GetNameOrBlueprint(subSelectionValue),
-                IsSelection = true,
-                SelectionOptions = selectionFeatures
-                        .ToDictionary(featureId => featureId, featureId => gameResourcesProvider.Blueprints.GetNameOrBlueprint(featureId)),
-                SelectionValue = subSelectionValue
-            };
+            return await Create(unitEntityModel, characterLevelManipulator, gameResourcesProvider,
+                        progressionBlueprintId: ProgressionBlueprintId,
+                        featureBlueprintId: SelectionValue,
+                        level: Level,
+                        isSelection: true,
+                        selectionOptions: selectionFeatures,
+                        selectionValue: subSelectionValue);
         }
 
         public async Task ChangeSelectionValue(string value)
@@ -159,7 +181,43 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             {
                 await characterLevelManipulator.AddFeature(Level, ProgressionBlueprintId, value);
             }
+
             SelectionValue = value;
+
+            await LoadParameterData();
+        }
+
+        private async Task LoadParameterData()
+        {
+            if (string.IsNullOrEmpty(SelectionValue))
+            {
+                return;
+            }
+
+            var featureBlueprint = await gameResourcesProvider.BlueprintsRepository.GetBlueprint(SelectionValue);
+            if (featureBlueprint?.Data is BlueprintParametrizedFeature parametrizedFeatureData)
+            {
+                IsParameterized = true;
+                ParameterType = parametrizedFeatureData.ParameterType.ToString();
+                SelectionValueParameterOptions = parametrizedFeatureData.GetParameterValues()
+                    .ToDictionary(featureIdOrValue => featureIdOrValue, featureIdOrValue => gameResourcesProvider.Blueprints.GetNameOrBlueprint(featureIdOrValue));
+
+                var fact = unitEntityModel.Facts.Items.FirstOrDefault(f => f is FeatureFactItemModel feature && f.Blueprint == SelectionValue && feature.SourceLevel == Level) as FeatureFactItemModel;
+                if (fact != null)
+                {
+                    SelectionValueParameterValue = fact.Param?[ParameterType];
+                }
+            }
+        }
+
+        public void ChangeParameterValue(string newValue)
+        {
+            var fact = unitEntityModel.Facts.Items.FirstOrDefault(f => f is FeatureFactItemModel feature && f.Blueprint == SelectionValue && feature.SourceLevel == Level) as FeatureFactItemModel;
+            if (fact != null)
+            {
+                fact.SetParameter(ParameterType, newValue);
+                SelectionValueParameterValue = newValue;
+            }
         }
     }
 }

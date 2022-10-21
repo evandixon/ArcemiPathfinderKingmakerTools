@@ -15,15 +15,14 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
             {
                 if (Param != null)
                 {
-                    if (!string.IsNullOrEmpty(Param.WeaponCategory))
+                    var displayName = base.DisplayName;
+                    foreach (var keyValue in Param)
                     {
-                        return string.Concat(base.DisplayName, " - ", Param.WeaponCategory.AsDisplayable());
+                        displayName += $"({keyValue.Key}: {keyValue.Value})";
                     }
-                    if (!string.IsNullOrEmpty(Param.SpellSchool))
-                    {
-                        return string.Concat(base.DisplayName, " - ", Param.SpellSchool.AsDisplayable());
-                    }
+                    return displayName;
                 }
+
                 return base.DisplayName;
             }
         }
@@ -34,7 +33,17 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
         public string Source { get => A.Value<string>(); set => A.Value(value); }
         public bool IgnorePrerequisites { get => A.Value<bool>(); set => A.Value(value); }
         public ListAccessor<FeatureRankToSourceModel> RankToSource => A.List("m_RankToSource", a => new FeatureRankToSourceModel(a));
-        public FeatureParamModel Param => A.Object(factory: a => new FeatureParamModel(a));
+        public DictionaryOfValueAccessor<string> Param => A.DictionaryOfValue<string>();
+
+        public void SetParameter(string parameterType, string parameterValue)
+        {
+            if (Param == null)
+            {
+                A.UnderlyingObject.Add(nameof(Param), JToken.FromObject(new { }));
+            }
+
+            Param[parameterType] = parameterValue;
+        }
 
         public static new void Prepare(IReferences refs, JObject obj)
         {
