@@ -189,7 +189,7 @@ namespace Arcemi.Pathfinder.Kingmaker
             }
 
             var references = new References(this);
-            var blueprintFeature = await BlueprintsRepository.GetBlueprint<BlueprintFeature>(blueprintId);
+            var blueprintFeature = await BlueprintsRepository.GetBlueprintAsync<BlueprintFeature>(blueprintId);
             var factTemplateRaw = new JObject();
             FeatureFactItemModel.Prepare(references, factTemplateRaw);
             var factTemplateAccessor = new ModelDataAccessor(factTemplateRaw, references, this);

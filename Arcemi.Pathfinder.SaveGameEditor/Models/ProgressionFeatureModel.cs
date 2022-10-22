@@ -14,7 +14,11 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
         {
             var viewModels = new List<ProgressionFeatureModel>();
 
-            var progressionData = await resources.BlueprintsRepository.GetBlueprint<BlueprintProgression>(progression.Key);
+            var progressionData = await resources.BlueprintsRepository.GetBlueprintAsync<BlueprintProgression>(progression.Key);
+            var archetypesData = (await Task.WhenAll(
+                (progression.Value.Archetypes ?? Enumerable.Empty<string>())
+                    .Select(a => resources.BlueprintsRepository.GetBlueprintAsync<BlueprintArchetype>(a))))
+                .ToDictionary(a => a.AssetId, a => a);
 
             // Multiple selection values for a single feature means there's multiple features for this level
             // The first feature uses the first one, the second uses the second, etc
@@ -23,7 +27,27 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             var progressionLevels = progressionData.Data.LevelEntries.Where(l => l.Level <= progression.Value.Level);
             foreach (var progressionLevelData in progressionLevels)
             {
-                foreach (var featureData in progressionLevelData.m_Features)
+                IEnumerable<BlueprintReference<BlueprintFeature>> features = progressionLevelData.m_Features;
+                foreach (var archetype in progression.Value.Archetypes ?? Enumerable.Empty<string>())
+                {
+                    var archetypeData = archetypesData[archetype];
+                    if (archetypeData != null)
+                    {
+                        var addFeatures = archetypeData.Data.AddFeatures.FirstOrDefault(l => l.Level == progressionLevelData.Level);
+                        var removeFeatures = archetypeData.Data.RemoveFeatures.FirstOrDefault(l => l.Level == progressionLevelData.Level);
+
+                        if (removeFeatures != null)
+                        {
+                            features = features.Where(f => !removeFeatures.m_Features.Any(r => f.Id == r.Id));
+                        }
+                        if (addFeatures != null)
+                        {
+                            features = features.Concat(addFeatures.m_Features);
+                        }
+                    }
+                }
+
+                foreach (var featureData in features)
                 {
                     if (!unit.Facts.Items.Any(f => f.Blueprint == featureData.Id))
                     {
@@ -34,7 +58,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                     int? selectionIndex = null;
                     bool isSelection = false;
                     var selectionFeatures = new List<BlueprintReference>();
-                    if (featureData.Blueprint.Data is BlueprintFeatureSelection blueprintFeatureSelection)
+                    if ((await featureData.DereferenceAsync(resources.BlueprintsRepository))?.Data is BlueprintFeatureSelection blueprintFeatureSelection)
                     {
                         isSelection = true;
                         foreach (var featureReference in blueprintFeatureSelection.m_AllFeatures)
@@ -108,8 +132,8 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
         private readonly CharacterLevelManipulator characterLevelManipulator;
         private readonly IGameResourcesProvider gameResourcesProvider;
 
-        public string ProgressionBlueprintId { get; set; }
-        public string FeatureBlueprintId { get; set; }
+        public BlueprintReference<BlueprintProgression> ProgressionBlueprintId { get; set; }
+        public BlueprintReference<BlueprintFeature> FeatureBlueprintId { get; set; }
         public int Level { get; set; }
         public string DisplayName { get; set; }
         public bool IsSelection { get; set; }
@@ -131,7 +155,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 return null;
             }
 
-            var blueprint = await gameResourcesProvider.BlueprintsRepository.GetBlueprint(SelectionValue);
+            var blueprint = await gameResourcesProvider.BlueprintsRepository.GetBlueprintAsync(SelectionValue);
             if (blueprint?.Data is not BlueprintFeatureSelection selectionData)
             {
                 return null;
@@ -194,7 +218,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 return;
             }
 
-            var featureBlueprint = await gameResourcesProvider.BlueprintsRepository.GetBlueprint(SelectionValue);
+            var featureBlueprint = await gameResourcesProvider.BlueprintsRepository.GetBlueprintAsync(SelectionValue);
             if (featureBlueprint?.Data is BlueprintParametrizedFeature parametrizedFeatureData)
             {
                 IsParameterized = true;
@@ -218,6 +242,17 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 fact.SetParameter(ParameterType, newValue);
                 SelectionValueParameterValue = newValue;
             }
+        }
+
+        public async Task<ProgressionItemModel> GetSubProgression()
+        {
+            var feature = await FeatureBlueprintId.DereferenceAsync(gameResourcesProvider.BlueprintsRepository);
+            if (feature.Data is BlueprintProgression progression)
+            {
+                return unitEntityModel.Descriptor.Progression.Items.FirstOrDefault(p => p.Key == feature.AssetId);
+            }
+
+            return null;
         }
     }
 }

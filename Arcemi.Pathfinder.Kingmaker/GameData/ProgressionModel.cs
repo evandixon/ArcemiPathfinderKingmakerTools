@@ -29,7 +29,7 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
 
         public async Task<ProgressionItemModel> GetProgression(string characterClassBlueprintId, IGameResourcesProvider gameResourcesProvider)
         {
-            var classData = await gameResourcesProvider.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(characterClassBlueprintId);
+            var classData = await gameResourcesProvider.BlueprintsRepository.GetBlueprintAsync<BlueprintCharacterClass>(characterClassBlueprintId);
             var progressionId = classData?.Data?.m_Progression?.Id;
             if (progressionId == null)
             {

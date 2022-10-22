@@ -15,40 +15,14 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 
         public string Id => id?.Replace("!bp_", "");
 
-        public bool IsBlueprintLoaded { get; private set; }
-
-        public Blueprint Blueprint
+        public Blueprint Dereference(IBlueprintsRepository blueprintsRepository)
         {
-            get
-            {
-                if (!IsBlueprintLoaded)
-                {
-                    throw new InvalidOperationException();
-                }
-                return _blueprint;
-            }
-            private set => _blueprint = value;
-        }
-        private Blueprint _blueprint;
-        
-        public async Task LoadBlueprint(IBlueprintsRepository blueprints)
-        {
-            if (string.IsNullOrEmpty(this.Id))
-            {
-                return;
-            }
-
-            Blueprint = await blueprints.GetBlueprint(this.Id);
-            if (_blueprint == null)
-            {
-                throw new Exception($"Failed to load blueprint {this.Id}");
-            }
-            IsBlueprintLoaded = true;
+            return blueprintsRepository.GetBlueprint(Id);
         }
 
-        protected Blueprint<TBlueprintData> GetBlueprint<TBlueprintData>() where TBlueprintData : BlueprintData
+        public async Task<Blueprint> DereferenceAsync(IBlueprintsRepository blueprintsRepository)
         {
-            return new Blueprint<TBlueprintData>(Blueprint);
+            return await blueprintsRepository.GetBlueprintAsync(Id);
         }
 
         public static implicit operator string(BlueprintReference blueprintIdReference)
@@ -83,6 +57,34 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         {
         }
 
-        public new Blueprint<TBlueprintData> Blueprint => GetBlueprint<TBlueprintData>();
+        public new Blueprint<TBlueprintData> Dereference(IBlueprintsRepository blueprintsRepository)
+        {
+            return blueprintsRepository.GetBlueprint<TBlueprintData>(Id);
+        }
+
+        public new async Task<Blueprint<TBlueprintData>> DereferenceAsync(IBlueprintsRepository blueprintsRepository)
+        {
+            return await blueprintsRepository.GetBlueprintAsync<TBlueprintData>(Id);
+        }
+
+        public static implicit operator string(BlueprintReference<TBlueprintData> blueprintIdReference)
+        {
+            if (blueprintIdReference == null)
+            {
+                return null;
+            }
+
+            return blueprintIdReference.Id;
+        }
+
+        public static implicit operator BlueprintReference<TBlueprintData>(string blueprintId)
+        {
+            if (string.IsNullOrEmpty(blueprintId))
+            {
+                return null;
+            }
+
+            return new BlueprintReference<TBlueprintData>(blueprintId);
+        }
     }
 }

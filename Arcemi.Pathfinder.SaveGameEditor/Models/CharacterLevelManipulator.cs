@@ -44,7 +44,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         public async Task DowngradeClass(ClassModel cls)
         {
-            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(cls.CharacterClass);
+            var classData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintCharacterClass>(cls.CharacterClass);
             if (!ProgressionBlueprints.TryGetValue(cls.CharacterClass, out var blueprints))
             {
                 blueprints = new List<IBlueprintMetadataEntry>
@@ -143,7 +143,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         public async Task RefreshClassFeatures(ClassModel cls)
         {
-            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(cls.CharacterClass);
+            var classData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintCharacterClass>(cls.CharacterClass);
             for (int level = 1; level <= cls.Level; level++)
             {
                 var progression = Unit.Descriptor.Progression.Items.FirstOrDefault(p => p.Key == classData.Data.m_Progression.Id);
@@ -180,7 +180,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         private async Task RemoveClassFeatures(ClassModel cls)
         {
-            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(cls.CharacterClass);
+            var classData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintCharacterClass>(cls.CharacterClass);
             if (classData == null)
             {
                 return;
@@ -285,7 +285,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
         public async Task AddClass(string blueprintId)
         {
             // Class
-            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(blueprintId);
+            var classData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintCharacterClass>(blueprintId);
             var characterClass = Unit.Descriptor.Progression.Classes.FirstOrDefault(c => c.CharacterClass == blueprintId);
             if (characterClass != null)
             {
@@ -336,11 +336,11 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 return;
             }
 
-            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(classId);
+            var classData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintCharacterClass>(classId);
             foreach (var archetype in characterClass.Archetypes ?? Enumerable.Empty<string>())
             {
                 var archetypeReference = classData.Data.m_Archetypes.FirstOrDefault(a => a.Id == archetype);
-                var archetypeData = archetypeReference.Blueprint;
+                var archetypeData = await archetypeReference.DereferenceAsync(Resources.BlueprintsRepository);
                 foreach (var featureToRemove in archetypeData.Data.RemoveFeatures
                     .FirstOrDefault(f => f.Level == level)?.m_Features ?? Enumerable.Empty<BlueprintReference>())
                 {
@@ -358,7 +358,8 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
         {
             for (int currentLevel = progression.Value.Level + 1; currentLevel <= targetLevel; currentLevel++)
             {
-                var classLevel = classData.Data.m_Progression.Blueprint.Data.LevelEntries.FirstOrDefault(l => l.Level == currentLevel);
+                var progressionData = await classData.Data.m_Progression.DereferenceAsync(Resources.BlueprintsRepository);
+                var classLevel = progressionData.Data.LevelEntries.FirstOrDefault(l => l.Level == currentLevel);
                 if (classLevel == null)
                 {
                     return;
@@ -380,8 +381,9 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         private async Task AddReplacedClassFeatures(string classId, int removedLevel, string removedFeatureId)
         {
-            var classData = await Resources.BlueprintsRepository.GetBlueprint<BlueprintCharacterClass>(classId);
-            var removedFeature = classData.Data.m_Progression.Blueprint.Data
+            var classData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintCharacterClass>(classId);
+            var progressionData = await classData.Data.m_Progression.DereferenceAsync(Resources.BlueprintsRepository);
+            var removedFeature = progressionData.Data
                 .LevelEntries
                 .FirstOrDefault(l => l.Level == removedLevel)
                 ?.m_Features.FirstOrDefault(f => f.Id == removedFeatureId);
@@ -389,7 +391,9 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             {
                 return;
             }
-            foreach (var component in removedFeature.Blueprint.Data.Components)
+
+            var removedFeatureData = await removedFeature.DereferenceAsync(Resources.BlueprintsRepository);
+            foreach (var component in removedFeatureData.Data.Components)
             {
                 if (component is BlueprintComponentRemoveFeatureOnApply blueprintComponentRemoveFeatureOnApply)
                 {
@@ -400,7 +404,8 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         private async Task AddReplacedClassFeature(Blueprint<BlueprintCharacterClass> classData, string featureToAdd)
         {
-            foreach (var level in classData.Data.m_Progression.Blueprint.Data.LevelEntries)
+            var progressionData = await classData.Data.m_Progression.DereferenceAsync(Resources.BlueprintsRepository);
+            foreach (var level in progressionData.Data.LevelEntries)
             {
                 var feature = level.m_Features.FirstOrDefault(f => f.Id == featureToAdd);
                 if (feature == null)
@@ -414,7 +419,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         public async Task AddMissingFeatures(ProgressionItemModel progression, int level)
         {
-            var blueprint = await Resources.BlueprintsRepository.GetBlueprint<BlueprintProgression>(progression.Key);
+            var blueprint = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintProgression>(progression.Key);
             if (blueprint == null)
             {
                 return;

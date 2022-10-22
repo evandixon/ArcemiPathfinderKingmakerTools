@@ -15,6 +15,10 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         public static BlueprintComponent Factory(ModelDataAccessor accessor)
         {
             var type = accessor.TypeValue();
+            if (string.Equals(type, BlueprintComponentAddKnownSpell.TypeRef, StringComparison.Ordinal))
+            {
+                return new BlueprintComponentAddKnownSpell(accessor);
+            }
             if (string.Equals(type, BlueprintComponentRemoveFeatureOnApply.TypeRef, StringComparison.Ordinal))
             {
                 return new BlueprintComponentRemoveFeatureOnApply(accessor);

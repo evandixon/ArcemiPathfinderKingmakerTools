@@ -1,5 +1,6 @@
 ﻿@inject IGameResourcesProvider Resources
 
+<h3>@Resources.Blueprints.GetNameOrBlueprint(Progression?.Key)</h3>
 @if (ViewModels != null)
 {
     <div class="form-list">
@@ -41,6 +42,14 @@
     </div> 
 }
 
+@if (SubProgressions != null) 
+{
+    foreach (var subProgression in SubProgressions)
+    {
+        <CharacterProgressions Unit="Unit" Progression="subProgression" EnableFeatureRemoval="EnableFeatureRemoval" CharacterLevelManipulator="CharacterLevelManipulator" />
+    }
+}
+
 @code {
     [Parameter]
     public UnitEntityModel Unit{ get; set; }
@@ -54,7 +63,9 @@
     [Parameter]
     public CharacterLevelManipulator CharacterLevelManipulator { get; set; }
 
+    private string progressionName;
     private List<ProgressionFeatureModel> ViewModels;
+    private List<ProgressionItemModel> SubProgressions;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -67,13 +78,19 @@
         ViewModels = Progression != null
             ? await ProgressionFeatureModel.FromProgression(Progression, Unit, Resources, CharacterLevelManipulator)
             : null;
+
+        if (ViewModels != null)
+        {
+            SubProgressions = (await Task.WhenAll(ViewModels.Select(vm => vm.GetSubProgression()))).Where(p => p != null).ToList();
+        }
     }
 
-    private void RemoveFeature(ProgressionFeatureModel viewModel)
+    private async Task RemoveFeature(ProgressionFeatureModel viewModel)
     {
         if (CharacterLevelManipulator.RemoveFeatureByBlueprint(viewModel.FeatureBlueprintId, viewModel.Level, viewModel.ProgressionBlueprintId))
         {
             ViewModels.Remove(viewModel);
+            await Refresh();
         }
     }
 

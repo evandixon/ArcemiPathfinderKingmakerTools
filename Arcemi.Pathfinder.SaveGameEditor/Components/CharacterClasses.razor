@@ -9,48 +9,28 @@
     </button>
 </div>
 
-<div class="form-list">
-    <div class="row">
-        <div class="col-md-12">
-            <h2>Basic Feat Progression</h2>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-12">
-            <CharacterProgressions Unit="Unit" Progression="@Character.Progression.GetBasicFeatsProgression()" EnableFeatureRemoval="false" CharacterLevelManipulator="LevelManipulator" />
-        </div>
-    </div>
+<h2>Basic Feats Progression</h2>
+<CharacterProgressions Unit="Unit" Progression="Unit.Descriptor.Progression.GetBasicFeatsProgression()" EnableFeatureRemoval="true" CharacterLevelManipulator="LevelManipulator" />
 
-    @foreach (var cls in Character.Progression.Classes) {
-        <div class="row">
-            <div class="col-md-1" style="padding-top:5px">
-                <button class="btn btn-sm btn-warning" disabled="@(!LevelManipulator.CanDowngrade(cls))" @onclick="() => DowngradeClass(cls)">
-                    <span class="oi oi-arrow-thick-bottom"></span>
-                </button>
-                <button class="btn btn-sm btn-secondary" @onclick="() => RefreshClass(cls)">
-                    <span class="oi oi-wrench"></span>
-                </button>
-            </div>
-            <div class="col-md-11">
-                @if (!string.IsNullOrEmpty(cls.ArchetypeName))
-                {
-                    <h2>@cls.TypeName (@cls.ArchetypeName) Level @cls.Level</h2>
-                }
-                else
-                {
-                    <h2>@cls.TypeName Level @cls.Level</h2>
-                }
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-12">
-                <div class="form-list">
-                    <CharacterProgressions Unit="Unit" Progression="@ProgressionsByClass.GetValueOrDefault(cls.CharacterClass)" EnableFeatureRemoval="true" CharacterLevelManipulator="LevelManipulator" />
-                </div>
-            </div>
-        </div>
+@foreach (var cls in Character.Progression.Classes) {
+    @if (!string.IsNullOrEmpty(cls.ArchetypeName))
+    {
+        <h2>@cls.TypeName (@cls.ArchetypeName) Level @cls.Level</h2>
     }
-</div>
+    else
+    {
+        <h2>@cls.TypeName Level @cls.Level</h2>
+    }
+
+    <button class="btn btn-sm btn-warning" disabled="@(!LevelManipulator.CanDowngrade(cls))" @onclick="() => DowngradeClass(cls)">
+        <span class="oi oi-arrow-thick-bottom"></span>
+    </button>
+    <button class="btn btn-sm btn-secondary" @onclick="() => RefreshClass(cls)">
+        <span class="oi oi-wrench"></span>
+    </button>
+
+    <CharacterProgressions Unit="Unit" Progression="ProgressionsByClass.GetValueOrDefault(cls.CharacterClass)" EnableFeatureRemoval="true" CharacterLevelManipulator="LevelManipulator" />
+}
 
 <Modal @ref="modalAddClass">
     <Title>Add class</Title>
@@ -98,6 +78,7 @@
     private CharacterModel Character => Unit?.Descriptor;
     private CharacterLevelManipulator LevelManipulator;
     private Dictionary<string, ProgressionItemModel> ProgressionsByClass;
+    private Dictionary<string, ProgressionItemModel> ProgressionsByArchetype;
 
     private Modal modalAddClass;
 
