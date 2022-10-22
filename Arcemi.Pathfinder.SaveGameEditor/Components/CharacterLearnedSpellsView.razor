@@ -106,16 +106,19 @@
     protected override async Task OnParametersSetAsync()
     {
         SpellsPerDayBySpellLevel = null;
-        if (SpellbookLevel > 0)
+        if (!string.IsNullOrEmpty(SpellbookBlueprintId) && SpellbookLevel > 0)
         {
             SpellbookBlueprint = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintSpellbook>(SpellbookBlueprintId);
-            var spellsTable = await SpellbookBlueprint?.Data?.m_SpellsKnown?.DereferenceAsync(Resources.BlueprintsRepository);
-            if (spellsTable != null)
+            if (SpellbookBlueprint.Data.m_SpellsKnown != null)
             {
-                var spellsPerDayBySpellbookLevel = spellsTable.Data.Levels;
-                if (spellsPerDayBySpellbookLevel.Count > SpellbookLevel)
+                var spellsTable = await SpellbookBlueprint.Data.m_SpellsKnown.DereferenceAsync(Resources.BlueprintsRepository);
+                if (spellsTable != null)
                 {
-                    SpellsPerDayBySpellLevel = spellsPerDayBySpellbookLevel[SpellbookLevel];
+                    var spellsPerDayBySpellbookLevel = spellsTable.Data.Levels;
+                    if (spellsPerDayBySpellbookLevel.Count > SpellbookLevel)
+                    {
+                        SpellsPerDayBySpellLevel = spellsPerDayBySpellbookLevel[SpellbookLevel];
+                    }
                 }
             }
         }

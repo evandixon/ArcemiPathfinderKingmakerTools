@@ -1,4 +1,5 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -33,6 +34,21 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
 
             var list = A.ListD2("m_CustomSpells", factory: a => new CustomSpellModel(a));
             list.EnsureRank1Count(11);
+        }
+
+        public static void Factory(IReferences refs, JObject obj)
+        {
+            var bookObj = refs.Create();
+            obj.Add("Value", bookObj);
+            bookObj.Add("m_KnownSpells", refs.NewArray(11, () => new JArray()));
+            bookObj.Add("m_SpecialSpells", refs.NewArray(11, () => new JArray()));
+            bookObj.Add("m_SpecialLists", new JArray());
+            bookObj.Add("m_CustomSpells", refs.NewArray(11, () => new JArray()));
+            bookObj.Add("m_MemorizedSpells", refs.NewArray(11, () => new JArray()));
+            bookObj.Add("m_SpontaneousSlots", refs.NewArray(11, initialValue: 0));
+            bookObj.Add("OppositionSchools", new JArray());
+            bookObj.Add("ExOppositionSchools", new JArray());
+            bookObj.Add("BonusSpellSlots", refs.NewArray(11, initialValue: 0));
         }
     }
 }

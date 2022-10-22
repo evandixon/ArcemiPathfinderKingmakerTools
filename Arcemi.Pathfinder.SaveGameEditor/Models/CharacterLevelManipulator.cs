@@ -282,11 +282,11 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             }
         }
 
-        public async Task AddClass(string blueprintId)
+        public async Task AddClass(string characterClassId, string archetypeId = null)
         {
             // Class
-            var classData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintCharacterClass>(blueprintId);
-            var characterClass = Unit.Descriptor.Progression.Classes.FirstOrDefault(c => c.CharacterClass == blueprintId);
+            var classData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintCharacterClass>(characterClassId);
+            var characterClass = Unit.Descriptor.Progression.Classes.FirstOrDefault(c => c.CharacterClass == characterClassId);
             if (characterClass != null)
             {
                 // Add a level to the class
@@ -296,7 +296,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             {
                 // Add the class
                 characterClass = Unit.Descriptor.Progression.Classes.Add(ClassModel.Prepare);
-                characterClass.CharacterClass = blueprintId;
+                characterClass.CharacterClass = characterClassId;
                 characterClass.Level = 1;
             }
 
@@ -310,9 +310,22 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             }
 
             await UpgradeProgression(progression, characterClass.Level, classData);
+
+            if (!string.IsNullOrEmpty(archetypeId))
+            {
+                await AddClassArchetype(characterClassId, archetypeId);
+            }
+
+            //// Add spellbook
+            //var spellbookId = await GetSpellbookId(characterClassId, archetypeId);
+            //if (!string.IsNullOrEmpty(spellbookId))
+            //{
+            //    await AddSpellbookLevel(spellbookId);
+            //}
+            //await ApplyFeatsToSpellbook(characterClassId, archetypeId);
         }
 
-        public async Task AddClassArchetype(string classId, string archetypeId)
+        private async Task AddClassArchetype(string classId, string archetypeId)
         {
             var characterClass = Unit.Descriptor.Progression.Classes.First(c => c.CharacterClass == classId);
             if (characterClass.Archetypes.Any(a => a == archetypeId))
@@ -505,6 +518,98 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 if (component is BlueprintComponentRemoveFeatureOnApply featureToRemove)
                 {
                     RemoveFeatureByBlueprint(featureToRemove.m_Feature.Id, level, progressionId);
+                }
+            }
+        }
+
+        private async Task AddSpellbookLevel(BlueprintReference<BlueprintSpellbook> spellbookId)
+        {
+            var spellbookData = await spellbookId.DereferenceAsync(Resources.BlueprintsRepository);
+
+            var spellbook = Unit.Descriptor.Spellbooks.FirstOrDefault(s => s.Key == spellbookId);
+            if (spellbook == null)
+            {
+                spellbook = Unit.Descriptor.Spellbooks.Add(CharacterSpellbookModel.Factory);
+                spellbook.Key = spellbookId;
+                spellbook.Value.BaseLevelInternal = 1;
+                spellbook.Value.Blueprint = spellbookId;
+            }
+
+            spellbook.Value.BaseLevelInternal += 1;
+        }
+
+        private async Task<BlueprintReference<BlueprintSpellbook>> GetSpellbookId(string characterClassId, string archetypeId)
+        {
+            var classData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintCharacterClass>(characterClassId);
+            var spellbookId = classData.Data.m_Spellbook;
+            if (!string.IsNullOrEmpty(archetypeId))
+            {
+                var archetypeData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintArchetype>(archetypeId);
+                if (archetypeData.Data.RemoveSpellbook)
+                {
+                    spellbookId = null;
+                }
+                else if (!string.IsNullOrEmpty(archetypeData.Data.m_ReplaceSpellbook))
+                {
+                    spellbookId = archetypeData.Data.m_ReplaceSpellbook;
+                }
+            }
+            foreach (var fact in Unit.Facts.Items)
+            {
+                if (fact is not FeatureFactItemModel feature)
+                {
+                    continue;
+                }
+
+                if (feature.Source != classData.Data.m_Progression.Id)
+                {
+                    continue;
+                }
+
+                var featureData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintFeature>(fact.Blueprint);
+                if (featureData?.Data is not BlueprintFeatureReplaceSpellbook replaceSpellbook)
+                {
+                    continue;
+                }
+
+                spellbookId = replaceSpellbook.m_Spellbook;
+            }
+            return spellbookId;
+        }
+
+        private async Task ApplyFeatsToSpellbook(string characterClassId, string archetypeId)
+        {
+            var spellbookId = await GetSpellbookId(characterClassId, archetypeId);
+            var spellbook = Unit.Descriptor.Spellbooks.FirstOrDefault(s => s.Key == spellbookId);
+            if (spellbook == null)
+            {
+                return;
+            }
+
+            foreach (var fact in Unit.Facts.Items)
+            {
+                if (fact is not FeatureFactItemModel)
+                {
+                    continue;
+                }
+
+                var featureData = await Resources.BlueprintsRepository.GetBlueprintAsync(fact.Blueprint);
+                if (featureData == null)
+                {
+                    continue;
+                }
+
+                foreach (var (spellId, spellLevel) in featureData.Data.GetAddedSpells(characterClassId, archetypeId))
+                {
+                    if (spellbook.Value.KnownSpells[spellLevel].Any(s => s.Blueprint == spellId))
+                    {
+                        continue;
+                    }
+
+                    var knownSpell = spellbook.Value.KnownSpells.Add(spellLevel);
+                    knownSpell.Blueprint = spellId;
+                    knownSpell.CopiedFromScroll = false;
+                    knownSpell.UniqueId = Guid.NewGuid().ToString();
                 }
             }
         }

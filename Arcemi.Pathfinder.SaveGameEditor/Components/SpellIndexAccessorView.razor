@@ -36,7 +36,7 @@
     protected override async Task OnParametersSetAsync()
     {
         maxSlotsByLevel = null;
-        if (SpellbookLevel > 0)
+        if (!string.IsNullOrEmpty(SpellbookBlueprintId) && SpellbookLevel > 0)
         {
             var spellbookBlueprint = await resources.BlueprintsRepository.GetBlueprintAsync<BlueprintSpellbook>(SpellbookBlueprintId);
             if (spellbookBlueprint != null)
