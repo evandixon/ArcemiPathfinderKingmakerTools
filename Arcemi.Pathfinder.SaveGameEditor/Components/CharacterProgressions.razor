@@ -87,7 +87,7 @@
 
     private async Task RemoveFeature(ProgressionFeatureModel viewModel)
     {
-        if (CharacterLevelManipulator.RemoveFeatureByBlueprint(viewModel.FeatureBlueprintId, viewModel.Level, viewModel.ProgressionBlueprintId))
+        if (await CharacterLevelManipulator.RemoveFeatureByBlueprint(viewModel.FeatureBlueprintId, viewModel.Level, viewModel.ProgressionBlueprintId))
         {
             ViewModels.Remove(viewModel);
             await Refresh();

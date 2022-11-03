@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Player
 {
     public class PlayerLeaderStatsModel : RefModel, IEnumerable<PlayerLeaderAttributeModel>
     {

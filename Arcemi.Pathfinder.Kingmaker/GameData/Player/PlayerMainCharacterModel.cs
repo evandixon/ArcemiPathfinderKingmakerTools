@@ -1,6 +1,6 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Player
 {
     public class PlayerMainCharacterModel : Model
     {

@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #endregion
+using Arcemi.Pathfinder.Kingmaker.GameData.Player;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using System;
 using System.Collections.Generic;

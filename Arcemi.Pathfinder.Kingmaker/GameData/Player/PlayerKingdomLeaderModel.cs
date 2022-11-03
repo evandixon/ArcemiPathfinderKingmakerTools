@@ -1,10 +1,11 @@
-﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
+﻿using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Player
 {
     public class PlayerKingdomLeaderModel : RefModel
     {

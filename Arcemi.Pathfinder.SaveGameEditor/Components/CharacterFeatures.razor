@@ -1,6 +1,7 @@
 ﻿@using Arcemi.Pathfinder.Kingmaker.GameData.Enums
 @inject CharacterViewModel Model
 @inject IGameResourcesProvider Resources
+@inject ISaveDataProvider SaveDataProvider
 
 <div class="row">
     <div class="col-md-12">
@@ -145,6 +146,14 @@
     private string AddFeatBlueprint;
     private bool AddFeatIsInvalid => string.IsNullOrEmpty(AddFeatBlueprint);
 
+    private CharacterLevelManipulator characterLevelManipulator;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        characterLevelManipulator = new CharacterLevelManipulator(Unit, Resources, SaveDataProvider);
+    }
+
     private bool IsValidFeat(IBlueprintMetadataEntry x)
     {
         return true;
@@ -242,8 +251,8 @@
         ImportCode = "";
     }
 
-    private void RemoveFeature(FeatureFactItemModel feature)
+    private async Task RemoveFeature(FeatureFactItemModel feature)
     {
-        Unit.Facts.Items.Remove(feature);
+        await characterLevelManipulator.RemoveFeatureByBlueprint(feature.Blueprint, feature.SourceLevel, feature.Source);
     }
 }

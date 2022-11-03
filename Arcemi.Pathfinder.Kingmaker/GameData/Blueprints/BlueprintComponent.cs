@@ -19,6 +19,10 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
             {
                 return new BlueprintComponentAddKnownSpell(accessor);
             }
+            if (string.Equals(type, BlueprintComponentAddGlobalMapSpellFeature.TypeRef, StringComparison.Ordinal))
+            {
+                return new BlueprintComponentAddGlobalMapSpellFeature(accessor);
+            }
             if (string.Equals(type, BlueprintComponentRemoveFeatureOnApply.TypeRef, StringComparison.Ordinal))
             {
                 return new BlueprintComponentRemoveFeatureOnApply(accessor);

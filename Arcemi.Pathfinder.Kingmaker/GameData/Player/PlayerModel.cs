@@ -7,7 +7,7 @@ using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using System;
 using System.Collections.Generic;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Player
 {
     public class PlayerModel : RefModel
     {
@@ -33,6 +33,7 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
         public PlayerCorruptionModel Corruption => A.Object(factory: a => new PlayerCorruptionModel(a));
 
         public IReadOnlyList<PlayerGlobalMapsModel> GlobalMaps => A.List("m_GlobalMaps", a => new PlayerGlobalMapsModel(a));
+        public PlayerGlobalMapsSpellManagerModel GlobalMapsSpellManager => A.Object("m_GlobalMapSpellsManager", a => new PlayerGlobalMapsSpellManagerModel(a));
 
         public FlagsContainerModel UnlockableFlags => A.Object("m_UnlockableFlags", a => new FlagsContainerModel(a));
         public EtudesSystemModel EtudesSystem => A.Object(factory: a => new EtudesSystemModel(a));
