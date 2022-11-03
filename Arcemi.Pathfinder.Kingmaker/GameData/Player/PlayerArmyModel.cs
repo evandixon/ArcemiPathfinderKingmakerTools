@@ -1,7 +1,7 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using System;
 
-namespace Arcemi.Pathfinder.Kingmaker.GameData
+namespace Arcemi.Pathfinder.Kingmaker.GameData.Player
 {
     public class PlayerArmyModel : RefModel
     {

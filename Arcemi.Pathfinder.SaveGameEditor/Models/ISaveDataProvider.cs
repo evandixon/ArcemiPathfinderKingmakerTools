@@ -1,4 +1,5 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.GameData.Player;
 using System.Collections.Generic;
 
 namespace Arcemi.Pathfinder.SaveGameEditor.Models

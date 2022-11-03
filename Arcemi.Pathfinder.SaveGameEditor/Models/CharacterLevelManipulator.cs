@@ -10,10 +10,12 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 {
     public class CharacterLevelManipulator
     {
-        public CharacterLevelManipulator(UnitEntityModel unit, IGameResourcesProvider resources)
+        public CharacterLevelManipulator(UnitEntityModel unit, IGameResourcesProvider resources, ISaveDataProvider saveDataProvider)
         {
             Unit = unit;
             Resources = resources;
+            SaveDataProvider = saveDataProvider;
+
             if (unit == null) {
                 return;
             }
@@ -35,6 +37,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
 
         public UnitEntityModel Unit { get; }
         public IGameResourcesProvider Resources { get; }
+        public ISaveDataProvider SaveDataProvider { get; }
         public IReadOnlyDictionary<string, IReadOnlyList<IBlueprintMetadataEntry>> ProgressionBlueprints { get; }
 
         public bool CanDowngrade(ClassModel cls)
@@ -78,7 +81,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             var selection = progression.Selections.FirstOrDefault(s => s.Value.Source.Blueprint == classData.Data.m_Progression.Id);
             if (selection != null)
             {
-                RemoveSelection(progression, selection, clsLevel);
+                await RemoveSelection(progression, selection, clsLevel);
             }
 
             //for (var i = progression.Selections.Count - 1; i >= 0; i--) {
@@ -158,7 +161,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             }
         }
 
-        private void RemoveSelection(ProgressionModel progression, ProgressionSelectionModel selection, int level)
+        private async Task RemoveSelection(ProgressionModel progression, ProgressionSelectionModel selection, int level)
         {
             var levelStr = level.ToString();
             var progressionBlueprintId = selection.Value.Source.Blueprint;
@@ -167,7 +170,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             {
                 foreach (var featureBlueprintId in selection.Value.ByLevel[levelStr])
                 {
-                    RemoveFeature(featureBlueprintId, level, progressionBlueprintId);
+                    await RemoveFeature(featureBlueprintId, level, progressionBlueprintId);
                 }
 
                 selection.Value.ByLevel.Remove(levelStr);
@@ -191,11 +194,11 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 && feature.SourceLevel == cls.Level).ToList();
             foreach (var fact in toRemove)
             {
-                RemoveFeature(fact, cls.Level, classData.Data.m_Progression.Id);
+                await RemoveFeature(fact, cls.Level, classData.Data.m_Progression.Id);
             }
         }
 
-        public bool RemoveFeatureByBlueprint(string blueprintId, int sourceLevel, string sourceBlueprintId)
+        public async Task<bool> RemoveFeatureByBlueprint(string blueprintId, int sourceLevel, string sourceBlueprintId)
         {
             var feature = GetFeature(blueprintId, sourceLevel, sourceBlueprintId);
             if (feature == null)
@@ -203,30 +206,30 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 return false;
             }
 
-            return RemoveFeature(feature, sourceLevel, sourceBlueprintId);
+            return await RemoveFeature(feature, sourceLevel, sourceBlueprintId);
         }
 
-        private void RemoveFeaturesById(string id)
+        private async Task RemoveFeaturesById(string id)
         {
             var toRemove = Unit.Facts.Items.Where(f => f.Id == id).ToList();
             foreach (var fact in toRemove)
             {
-                RemoveFeature(fact);
+                await RemoveFeature(fact);
             }
         }
 
-        public bool RemoveFeaturesByBlueprint(string blueprintId)
+        public async Task<bool> RemoveFeaturesByBlueprint(string blueprintId)
         {
             var toRemove = Unit.Facts.Items.Where(fact => fact.Blueprint == blueprintId).ToList();
             var results = new List<bool>();
             foreach (var fact in toRemove)
             {
-                RemoveFeature(fact);
+                await RemoveFeature(fact);
             }
             return !results.Any() || results.All(r => r == true);
         }
 
-        private bool RemoveFeature(string featureBlueprintId, int sourceLevel, string sourceBlueprintId)
+        private async Task<bool> RemoveFeature(string featureBlueprintId, int sourceLevel, string sourceBlueprintId)
         {
             var feature = GetFeature(featureBlueprintId, sourceLevel, sourceBlueprintId);
             if (feature == null)
@@ -234,10 +237,10 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 return false;
             }
 
-            return RemoveFeature(feature, sourceLevel, sourceBlueprintId);
+            return await RemoveFeature(feature, sourceLevel, sourceBlueprintId);
         }
 
-        private bool RemoveFeature(FactItemModel fact, int sourceLevel = -1, string sourceBlueprintId = null)
+        private async Task<bool> RemoveFeature(FactItemModel fact, int sourceLevel = -1, string sourceBlueprintId = null)
         {
             if (fact == null)
             {
@@ -253,16 +256,40 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                     {
                         if (addedFact is ActivatableAbilityFactItemModel activatableAbilityFact && activatableAbilityFact.m_AppliedBuff != null)
                         {
-                            RemoveFeaturesById(activatableAbilityFact.m_AppliedBuff.Id);
+                            await RemoveFeaturesById(activatableAbilityFact.m_AppliedBuff.Id);
                         }
 
-                        RemoveFeature(addedFact);
+                        await RemoveFeature(addedFact);
                     }
                 }
             }
 
+            FeatureFactItemModel feature = null;
+            if (fact is FeatureFactItemModel)
+            {
+                feature = (FeatureFactItemModel)fact;
+                var featData = await Resources.BlueprintsRepository.GetBlueprintAsync(fact.Blueprint);
+                if (featData != null)
+                {
+                    foreach (var component in featData.Data.Components)
+                    {
+                        if (component is BlueprintComponentAddGlobalMapSpellFeature addGlobalMapSpellFeature)
+                        {
+                            var slotsToRemove = SaveDataProvider.Player.GlobalMapsSpellManager.GlobalMapActionBarSlots
+                                .Where(s => s.SpellState.BlueprintRef == addGlobalMapSpellFeature.m_Spell).ToList();
+                            foreach (var slot in slotsToRemove)
+                            {
+                                SaveDataProvider.Player.GlobalMapsSpellManager.GlobalMapActionBarSlots.Remove(slot);
+                                SaveDataProvider.Player.GlobalMapsSpellManager.SpellBook.Remove(slot.SpellState);
+                            }
+                        }
+                    }
+                }
+            }
+
+
             if (!string.IsNullOrEmpty(sourceBlueprintId) && sourceLevel > -1
-                && fact is FeatureFactItemModel feature && feature.Rank > 1)
+                && feature != null && feature.Rank > 1)
             {
                 // Simply remove one rank since it came from multiple sources
                 feature.Rank -= 1;
@@ -357,7 +384,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 foreach (var featureToRemove in archetypeData.Data.RemoveFeatures
                     .FirstOrDefault(f => f.Level == level)?.m_Features ?? Enumerable.Empty<BlueprintReference>())
                 {
-                    RemoveFeaturesByBlueprint(featureToRemove.Id);
+                    await RemoveFeaturesByBlueprint(featureToRemove.Id);
                 }
                 foreach (var featureToAdd in archetypeData.Data.AddFeatures
                     .FirstOrDefault(f => f.Level == level)?.m_Features ?? Enumerable.Empty<BlueprintReference>())
@@ -517,7 +544,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             {
                 if (component is BlueprintComponentRemoveFeatureOnApply featureToRemove)
                 {
-                    RemoveFeatureByBlueprint(featureToRemove.m_Feature.Id, level, progressionId);
+                    await RemoveFeatureByBlueprint(featureToRemove.m_Feature.Id, level, progressionId);
                 }
             }
         }

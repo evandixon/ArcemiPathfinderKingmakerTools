@@ -1,5 +1,6 @@
 ﻿using Arcemi.Pathfinder.Kingmaker;
 using Arcemi.Pathfinder.Kingmaker.GameData;
+using Arcemi.Pathfinder.Kingmaker.GameData.Player;
 using System.Collections.Generic;
 using System.Linq;
 

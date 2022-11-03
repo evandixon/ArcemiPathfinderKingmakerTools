@@ -1,6 +1,7 @@
 ﻿@using Arcemi.Pathfinder.SaveGameEditor.Components.Modals
 @inject CharacterViewModel Model
 @inject IGameResourcesProvider Resources
+@inject ISaveDataProvider SaveData
 
 <div class="row">
     <h2 class="col-md-12">Classes</h2>
@@ -90,7 +91,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        LevelManipulator = new CharacterLevelManipulator(Unit, Resources);
+        LevelManipulator = new CharacterLevelManipulator(Unit, Resources, SaveData);
         await LoadProgressions();
     }
 
