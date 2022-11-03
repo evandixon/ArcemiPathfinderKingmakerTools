@@ -106,15 +106,19 @@
     protected override async Task OnParametersSetAsync()
     {
         SpellsPerDayBySpellLevel = null;
-        if (SpellbookLevel > 0)
+        if (!string.IsNullOrEmpty(SpellbookBlueprintId) && SpellbookLevel > 0)
         {
-            SpellbookBlueprint = await Resources.BlueprintsRepository.GetBlueprint<BlueprintSpellbook>(SpellbookBlueprintId);
-            if (SpellbookBlueprint?.Data?.m_SpellsKnown?.Blueprint != null)
+            SpellbookBlueprint = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintSpellbook>(SpellbookBlueprintId);
+            if (SpellbookBlueprint.Data.m_SpellsKnown != null)
             {
-                var spellsPerDayBySpellbookLevel = SpellbookBlueprint.Data.m_SpellsKnown.Blueprint.Data.Levels;
-                if (spellsPerDayBySpellbookLevel.Count > SpellbookLevel)
+                var spellsTable = await SpellbookBlueprint.Data.m_SpellsKnown.DereferenceAsync(Resources.BlueprintsRepository);
+                if (spellsTable != null)
                 {
-                    SpellsPerDayBySpellLevel = spellsPerDayBySpellbookLevel[SpellbookLevel];
+                    var spellsPerDayBySpellbookLevel = spellsTable.Data.Levels;
+                    if (spellsPerDayBySpellbookLevel.Count > SpellbookLevel)
+                    {
+                        SpellsPerDayBySpellLevel = spellsPerDayBySpellbookLevel[SpellbookLevel];
+                    }
                 }
             }
         }
@@ -126,11 +130,15 @@
 
         if (!AddSpellShowAll && SpellbookBlueprint != null)
         {
-            var allowedSpells = SpellbookBlueprint.Data.m_SpellList.Blueprint.Data.SpellsByLevel.FirstOrDefault(l => l.SpellLevel == AddSpellLevel);
-            if (allowedSpells != null)
+            var spellsTable = SpellbookBlueprint?.Data?.m_SpellList?.Dereference(Resources.BlueprintsRepository);
+            if (spellsTable != null)
             {
-                var allowedSpellIds = allowedSpells.m_Spells.Select(m => m.Id).ToHashSet();
-                spells = spells.Where(s => allowedSpellIds.Contains(s.Id));
+                var allowedSpells = spellsTable.Data.SpellsByLevel.FirstOrDefault(l => l.SpellLevel == AddSpellLevel);
+                if (allowedSpells != null)
+                {
+                    var allowedSpellIds = allowedSpells.m_Spells.Select(m => m.Id).ToHashSet();
+                    spells = spells.Where(s => allowedSpellIds.Contains(s.Id));
+                }
             }
         }
 

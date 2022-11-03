@@ -1,6 +1,7 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using Arcemi.Pathfinder.Kingmaker.Infrastructure.Extensions;
 using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace Arcemi.Pathfinder.Kingmaker.GameData
 {
@@ -16,9 +17,9 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData
                 if (Param != null)
                 {
                     var displayName = base.DisplayName;
-                    foreach (var keyValue in Param)
+                    if (Param.Any())
                     {
-                        displayName += $"({keyValue.Key}: {keyValue.Value})";
+                        displayName += $"({string.Join(", ", Param.Values)})";
                     }
                     return displayName;
                 }

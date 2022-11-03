@@ -1,5 +1,6 @@
 ﻿using Arcemi.Pathfinder.Kingmaker.Infrastructure;
 using System;
+using System.Collections.Generic;
 
 namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
 {
@@ -34,6 +35,10 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
             {
                 return new BlueprintFeatureSelection(accessor);
             }
+            if (string.Equals(type, BlueprintFeatureReplaceSpellbook.TypeRef, StringComparison.Ordinal))
+            {
+                return new BlueprintFeatureReplaceSpellbook(accessor);
+            }
             if (string.Equals(type, BlueprintParametrizedFeature.TypeRef, StringComparison.Ordinal))
             {
                 return new BlueprintParametrizedFeature(accessor);
@@ -56,6 +61,37 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
             }
 
             return new BlueprintData(accessor);
+        }
+
+        public ListAccessor<BlueprintComponent> Components => A.List(factory: BlueprintComponent.Factory);
+
+        /// <summary>
+        /// Gets spells added as a result of this feature
+        /// </summary>
+        public IEnumerable<(BlueprintReference<BlueprintAbility> spellReference, int spellLevel)> GetAddedSpells(string characterClassId, string archetypeId, int? level = null)
+        {
+            foreach (var component in Components)
+            {
+                if (component is BlueprintComponentAddKnownSpell addSpellComponent)
+                {
+                    if (addSpellComponent.m_CharacterClass.Id != characterClassId)
+                    {
+                        continue;
+                    }
+
+                    if (addSpellComponent.m_Archetype != null && addSpellComponent.m_Archetype.Id != archetypeId)
+                    {
+                        continue;
+                    }
+
+                    if (level.HasValue && addSpellComponent.SpellLevel != level.Value)
+                    {
+                        continue;
+                    }
+
+                    yield return (addSpellComponent.m_Spell, addSpellComponent.SpellLevel);
+                }
+            }
         }
     }
 }

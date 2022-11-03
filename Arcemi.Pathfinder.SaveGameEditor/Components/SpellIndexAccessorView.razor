@@ -36,13 +36,13 @@
     protected override async Task OnParametersSetAsync()
     {
         maxSlotsByLevel = null;
-        if (SpellbookLevel > 0)
+        if (!string.IsNullOrEmpty(SpellbookBlueprintId) && SpellbookLevel > 0)
         {
-            var spellbookBlueprint = await resources.BlueprintsRepository.GetBlueprint<BlueprintSpellbook>(SpellbookBlueprintId);
+            var spellbookBlueprint = await resources.BlueprintsRepository.GetBlueprintAsync<BlueprintSpellbook>(SpellbookBlueprintId);
             if (spellbookBlueprint != null)
             {
                 var list = spellbookBlueprint.Data.m_SpellSlots ?? spellbookBlueprint.Data.m_SpellsPerDay;
-                var slotsList = list.Blueprint.Data.Levels;
+                var slotsList = (await list.DereferenceAsync(resources.BlueprintsRepository)).Data.Levels;
                 maxSlotsByLevel = slotsList[SpellbookLevel];
                 // To-do: factor in bonus spells and ability modifier
             }

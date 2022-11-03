@@ -12,7 +12,5 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         public BlueprintFeature(ModelDataAccessor accessor) : base(accessor)
         {
         }
-
-        public ListAccessor<BlueprintComponent> Components => A.List(factory: BlueprintComponent.Factory);
     }
 }
