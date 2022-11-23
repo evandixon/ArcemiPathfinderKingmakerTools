@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Arcemi.Pathfinder.SaveGameEditor.Controllers
 {
@@ -11,6 +12,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Controllers
         [HttpGet("{path}")]
         public IActionResult Get(string path)
         {
+            path = HttpUtility.UrlDecode(path);
             if (!System.IO.File.Exists(path))
             {
                 return NotFound();

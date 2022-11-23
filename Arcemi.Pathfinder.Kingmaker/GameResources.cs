@@ -21,7 +21,7 @@ namespace Arcemi.Pathfinder.Kingmaker
         {
             this.AppData = pathfinderAppData ?? throw new ArgumentNullException(nameof(pathfinderAppData));
             this.Blueprints = BlueprintMetadata.Load(gameFolder);
-            if (!string.IsNullOrEmpty(gameFolder))
+            if (!string.IsNullOrEmpty(gameFolder) && Directory.Exists(gameFolder))
             {
                 var references = new References(this);
                 this.BlueprintsRepository = new BlueprintsRepository(Path.Combine(gameFolder, "blueprints.zip"), references, this);
