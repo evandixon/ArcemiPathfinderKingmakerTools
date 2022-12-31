@@ -199,7 +199,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             unitEntityModel.Descriptor.Progression.ReplaceSelection(FeatureBlueprintId, ProgressionBlueprintId, Level, SelectionValue, value);
             if (!string.IsNullOrEmpty(SelectionValue))
             {
-                characterLevelManipulator.RemoveFeatureByBlueprint(SelectionValue, Level, ProgressionBlueprintId);
+                await characterLevelManipulator.RemoveFeatureByBlueprint(SelectionValue, Level, ProgressionBlueprintId);
             }
             if (!string.IsNullOrEmpty(value))
             {
