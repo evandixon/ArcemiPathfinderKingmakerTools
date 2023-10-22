@@ -34,7 +34,7 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         private readonly IReferences refs;
         private readonly IGameResourcesProvider res;
         private readonly ZipArchive zipArchive;
-        private readonly SemaphoreSlim zipSemaphore = new(1, 1);
+        private readonly SemaphoreSlim zipSemaphore = new(1);
 
         private readonly ConcurrentDictionary<string, Blueprint> blueprintCache = new();
 
@@ -107,7 +107,7 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
             {
                 using var entryStream = GetEntryWithoutLocking(filePath);
                 using var streamReader = new StreamReader(entryStream);
-                blueprintContent = await streamReader.ReadToEndAsync();
+                blueprintContent = streamReader.ReadToEnd(); // Do not use async version. We might end up in a deadlock due to the task scheduler not returning to release zipSemaphore
             }
             finally
             {
@@ -163,6 +163,11 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
         public async Task<Blueprint<TBlueprintData>> GetBlueprintAsync<TBlueprintData>(string blueprintId) where TBlueprintData : BlueprintData
         {
             var blueprint = await GetBlueprintAsync(blueprintId);
+            if (blueprint == null)
+            {
+                return null;
+            }
+
             return new Blueprint<TBlueprintData>(blueprint);
         }
 

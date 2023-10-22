@@ -113,7 +113,12 @@
     {
         var typeStr = AddBlueprintItemType.HasValue()
             ? AddBlueprintItemType
-            : Resources.Blueprints.Get(AddBlueprintItemBlueprint).Type.FullName;
+            : Resources.Blueprints.Get(AddBlueprintItemBlueprint)?.Type?.FullName;
+        if (typeStr == null)
+        {
+            return;
+        }
+
         var type = BlueprintType.GetItemType(typeStr);
 
         var item = Inventory.AddItem(type, AddBlueprintItemBlueprint);

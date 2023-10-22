@@ -50,10 +50,14 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
             var classData = await Resources.BlueprintsRepository.GetBlueprintAsync<BlueprintCharacterClass>(cls.CharacterClass);
             if (!ProgressionBlueprints.TryGetValue(cls.CharacterClass, out var blueprints))
             {
-                blueprints = new List<IBlueprintMetadataEntry>
+                var blueprint = Resources.Blueprints.Get(classData.Data.m_Progression.Id);
+                if (blueprint != null)
                 {
-                    Resources.Blueprints.Get(classData.Data.m_Progression.Id)
-                };
+                    blueprints = new List<IBlueprintMetadataEntry>
+                    {
+                        blueprint
+                    };
+                }
             }
 
             var progression = Unit.Descriptor.Progression;

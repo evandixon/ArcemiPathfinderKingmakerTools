@@ -207,6 +207,10 @@ else {
     private async Task AddEtudeAsync()
     {
         var blueprint = Model.Resources.Blueprints.Get(SelectedEtude);
+        if (blueprint == null)
+        {
+            return;
+        }
         var etudeState = Model.Player.EtudesSystem.EtudesData.Add();
         etudeState.Key = SelectedEtude;
         etudeState.Value = EtudeStates.Started;

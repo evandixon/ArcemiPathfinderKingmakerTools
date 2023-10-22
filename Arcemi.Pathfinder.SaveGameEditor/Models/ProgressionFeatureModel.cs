@@ -229,7 +229,7 @@ namespace Arcemi.Pathfinder.SaveGameEditor.Models
                 var fact = unitEntityModel.Facts.Items.FirstOrDefault(f => f is FeatureFactItemModel feature && f.Blueprint == SelectionValue && feature.SourceLevel == Level) as FeatureFactItemModel;
                 if (fact != null)
                 {
-                    SelectionValueParameterValue = fact.Param?[ParameterType];
+                    SelectionValueParameterValue = fact.Param?.GetValueOrDefault(ParameterType) ?? fact.Param?.GetValueOrDefault("Blueprint");
                 }
             }
         }

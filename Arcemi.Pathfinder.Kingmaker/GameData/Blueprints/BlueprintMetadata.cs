@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
@@ -44,13 +45,15 @@ namespace Arcemi.Pathfinder.Kingmaker.GameData.Blueprints
             return TryGetName(blueprint, out var name) ? name : blueprint;
         }
 
+        [return: MaybeNull]
         public IBlueprintMetadataEntry Get(string blueprintId)
         {
-            if (_lookup.TryGetValue(blueprintId, out var entry))
+            if (!_lookup.TryGetValue(blueprintId, out var entry))
             {
-                return entry;
+                return null;
             }
-            throw new ArgumentException("Blueprint could not be found");
+
+            return entry;
         }
 
         public bool TryGet(string blueprintId, out IBlueprintMetadataEntry blueprint)

@@ -42,9 +42,12 @@
             if (spellbookBlueprint != null)
             {
                 var list = spellbookBlueprint.Data.m_SpellSlots ?? spellbookBlueprint.Data.m_SpellsPerDay;
-                var slotsList = (await list.DereferenceAsync(resources.BlueprintsRepository)).Data.Levels;
-                maxSlotsByLevel = slotsList[SpellbookLevel];
-                // To-do: factor in bonus spells and ability modifier
+                var slotsList = (await list.DereferenceAsync(resources.BlueprintsRepository))?.Data?.Levels;
+                if (slotsList != null)
+                {
+                    maxSlotsByLevel = slotsList[SpellbookLevel];
+                    // To-do: factor in bonus spells and ability modifier
+                }
             }
         }
     }
